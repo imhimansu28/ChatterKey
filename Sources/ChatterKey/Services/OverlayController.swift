@@ -9,7 +9,7 @@ final class OverlayController {
     func show(appState: AppState) {
         if panel == nil {
             let panel = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 346, height: 94),
+                contentRect: NSRect(x: 0, y: 0, width: 86, height: 54),
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false
@@ -17,7 +17,8 @@ final class OverlayController {
             panel.level = .floating
             panel.isOpaque = false
             panel.backgroundColor = .clear
-            panel.hasShadow = true
+            panel.hasShadow = false
+            panel.ignoresMouseEvents = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             panel.contentView = NSHostingView(rootView: DictationPillView().environmentObject(appState))
             self.panel = panel
@@ -35,7 +36,7 @@ final class OverlayController {
         let frame = screen.visibleFrame
         panel.setFrameOrigin(NSPoint(
             x: frame.midX - panel.frame.width / 2,
-            y: frame.minY + 54
+            y: frame.minY + 42
         ))
     }
 }

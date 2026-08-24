@@ -31,7 +31,7 @@ struct MainPopoverView: View {
                 .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("ChatterKey").font(.system(size: 15, weight: .semibold))
-                    Text("v0.2").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
+                    Text("v0.2.1").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
                 }
             }
             Spacer()
@@ -89,12 +89,17 @@ struct MainPopoverView: View {
                 .frame(maxWidth: 165)
 
                 Button {
-                    if appState.phase == .listening { appState.finishDictation() }
-                    else { appState.beginDictation() }
+                    if appState.phase == .listening {
+                        appState.finishDictation()
+                    } else if appState.canRetry {
+                        appState.retryLastDictation()
+                    } else {
+                        appState.beginDictation()
+                    }
                 } label: {
                     Label(
-                        appState.phase == .listening ? "Stop & Insert" : "Test Dictation",
-                        systemImage: appState.phase == .listening ? "stop.fill" : "mic.fill"
+                        appState.phase == .listening ? "Stop & Insert" : (appState.canRetry ? "Retry" : "Test Dictation"),
+                        systemImage: appState.phase == .listening ? "stop.fill" : (appState.canRetry ? "arrow.clockwise" : "mic.fill")
                     )
                     .frame(maxWidth: .infinity)
                 }

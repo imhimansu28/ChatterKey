@@ -6,9 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Added
+## [0.2.1] - 2026-08-24
 
-- Nothing yet.
+### Changed
+
+- Replaced the large dictation status pill with a compact animation-only indicator for listening, processing, completion, and failure states.
+- Kept failed-dictation retry available from the menu-bar popover while removing controls from the compact overlay.
+- Updated the packaged application version to `0.2.1` with build number `3`.
+
+### Fixed
+
+- Removed the rectangular window shadow and clipped gray border around the compact dictation indicator.
 
 ## [0.2.0] - 2026-08-24
 

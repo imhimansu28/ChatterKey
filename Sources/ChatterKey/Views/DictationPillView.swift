@@ -4,142 +4,123 @@ struct DictationPillView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        HStack(spacing: 14) {
-            statusVisual
-                .frame(width: 48, height: 48)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.55))
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 4)
-
-            if case .failed = appState.phase {
-                HStack(spacing: 6) {
-                    if appState.canRetry {
-                        Button("Retry") { appState.retryLastDictation() }
-                            .buttonStyle(PillButtonStyle())
-                    }
-                    Button("Dismiss") { appState.cancel() }
-                        .buttonStyle(PillButtonStyle())
-                }
-            } else if appState.phase == .processing {
-                ProgressView().controlSize(.small).tint(.white)
-            } else if appState.phase == .listening {
-                WaveformView()
-            }
-        }
-        .padding(.horizontal, 18)
-        .frame(width: 334, height: 82)
-        .background(
-            RoundedRectangle(cornerRadius: 27, style: .continuous)
-                .fill(Color(red: 0.055, green: 0.055, blue: 0.065).opacity(0.98))
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(red: 0.045, green: 0.045, blue: 0.055).opacity(0.96))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 27, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(.white.opacity(0.1), lineWidth: 0.75)
                 )
-        )
-        .shadow(color: .black.opacity(0.42), radius: 28, y: 12)
-        .padding(6)
+
+            phaseVisual
+                .transition(.scale(scale: 0.72).combined(with: .opacity))
+                .id(phaseID)
+        }
+        .frame(width: 76, height: 44)
+        .padding(5)
+        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: phaseID)
     }
 
-    @ViewBuilder private var statusVisual: some View {
+    @ViewBuilder private var phaseVisual: some View {
         switch appState.phase {
         case .listening:
-            MicPulseView()
+            ListeningWaveformView()
         case .processing:
-            Circle().fill(Color.indigo)
-                .overlay(Image(systemName: "sparkles").font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
+            ProcessingDotsView()
         case .inserted:
-            Circle().fill(Color.green)
-                .overlay(Image(systemName: "checkmark").font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
+            CompletionCheckView()
         case .failed:
-            Circle().fill(Color.orange)
-                .overlay(Image(systemName: "exclamationmark").font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
+            statusIcon("exclamationmark", color: .orange)
         case .idle:
-            Circle().fill(Color.white.opacity(0.1))
-                .overlay(Image(systemName: "mic.fill").foregroundStyle(.white))
-        }
-    }
-
-    private var title: String {
-        switch appState.phase {
-        case .idle: "Ready"
-        case .listening: "Listening"
-        case .processing: "Making it flow"
-        case .inserted: "Inserted"
-        case .failed: "Couldn’t transcribe"
-        }
-    }
-
-    private var subtitle: String {
-        switch appState.phase {
-        case .idle: "Hold \(appState.settings.hotkeyShortcut.title) to talk"
-        case .listening: "Release \(appState.settings.hotkeyShortcut.title) to insert"
-        case .processing: "Applying \(appState.settings.outputMode.shortTitle)…"
-        case .inserted: "Text is ready"
-        case .failed(let message): message
-        }
-    }
-}
-
-private struct MicPulseView: View {
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.red.opacity(pulse ? 0.0 : 0.45), lineWidth: 2)
-                .scaleEffect(pulse ? 1.45 : 0.82)
-            Circle()
-                .fill(Color.red.opacity(0.18))
-                .scaleEffect(pulse ? 1.12 : 0.92)
-            Circle()
-                .fill(Color(red: 0.96, green: 0.20, blue: 0.28))
-                .frame(width: 36, height: 36)
-                .shadow(color: .red.opacity(0.45), radius: 10)
             Image(systemName: "mic.fill")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.86))
         }
-        .onAppear { pulse = true }
-        .animation(.easeOut(duration: 0.9).repeatForever(autoreverses: false), value: pulse)
+    }
+
+    private var phaseID: String {
+        switch appState.phase {
+        case .idle: "idle"
+        case .listening: "listening"
+        case .processing: "processing"
+        case .inserted: "inserted"
+        case .failed: "failed"
+        }
+    }
+
+    private func statusIcon(_ name: String, color: Color) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: 28, height: 28)
+            .overlay(
+                Image(systemName: name)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+            )
     }
 }
 
-private struct WaveformView: View {
+private struct ListeningWaveformView: View {
     @State private var animate = false
-    private let heights: [CGFloat] = [11, 21, 31, 17, 26, 13, 22]
+    private let heights: [CGFloat] = [8, 15, 23, 13, 28, 17, 24, 14, 9]
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 2.5) {
             ForEach(Array(heights.enumerated()), id: \.offset) { index, height in
                 Capsule()
-                    .fill(.white.opacity(0.92))
-                    .frame(width: 3, height: animate ? height : max(6, height * 0.28))
+                    .fill(.white.opacity(0.94))
+                    .frame(width: 2.5, height: animate ? height : max(5, height * 0.32))
                     .animation(
-                        .easeInOut(duration: 0.42).repeatForever(autoreverses: true).delay(Double(index) * 0.055),
+                        .easeInOut(duration: 0.36)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.045),
                         value: animate
                     )
             }
         }
+        .frame(width: 44, height: 30)
         .onAppear { animate = true }
     }
 }
 
-private struct PillButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.white.opacity(configuration.isPressed ? 0.2 : 0.12), in: Capsule())
+private struct ProcessingDotsView: View {
+    @State private var animate = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(Color.indigo.opacity(0.95))
+                    .frame(width: 6, height: 6)
+                    .offset(y: animate ? -4 : 4)
+                    .animation(
+                        .easeInOut(duration: 0.42)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.12),
+                        value: animate
+                    )
+            }
+        }
+        .frame(width: 40, height: 28)
+        .onAppear { animate = true }
+    }
+}
+
+private struct CompletionCheckView: View {
+    @State private var appeared = false
+
+    var body: some View {
+        Circle()
+            .fill(Color.green)
+            .frame(width: 29, height: 29)
+            .overlay(
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            )
+            .scaleEffect(appeared ? 1 : 0.45)
+            .opacity(appeared ? 1 : 0)
+            .onAppear { appeared = true }
+            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: appeared)
     }
 }

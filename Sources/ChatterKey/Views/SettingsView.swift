@@ -40,7 +40,7 @@ struct SettingsView: View {
                 .overlay(Image(systemName: "waveform").foregroundStyle(Color(nsColor: .windowBackgroundColor)))
             VStack(alignment: .leading, spacing: 2) {
                 Text("ChatterKey Settings").font(.title3.weight(.semibold))
-                Text("Version 0.2 · Voice typing that fits your workflow")
+                Text("Version 0.2.1 · Voice typing that fits your workflow")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
