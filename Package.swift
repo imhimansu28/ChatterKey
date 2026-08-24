@@ -11,6 +11,6 @@ let package = Package(
         .executableTarget(
             name: "ChatterKey",
             path: "Sources/ChatterKey"
-        )
+)
     ]
 )

@@ -47,17 +47,7 @@ nonisolated struct ProviderClient: Sendable {
             request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
         }
 
-        let languageRule = settings.preserveHinglish
-            ? "Translate all Hindi or Hinglish into fluent, natural English. Never return Devanagari or Roman Hindi."
-            : "Keep the speaker's original language."
-        let system = """
-        You are the final writing layer for voice dictation.
-        \(languageRule)
-        Preserve the exact intent, tone, names, code, URLs and technical terms.
-        Remove filler words, repetition and abandoned phrases. Respect the speaker's final self-correction.
-        Improve grammar, punctuation and sentence flow without adding any new idea.
-        Return plain text only. Never use Markdown, code fences, backticks, labels, prefaces or surrounding quotes.
-        """
+        let system = processingPrompt
 
         let body = ChatRequest(
             model: settings.polishModel,
@@ -97,14 +87,7 @@ nonisolated struct ProviderClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
 
-        let prompt = """
-        Listen carefully and return the final dictation in fluent, concise, natural English.
-        Translate every Hindi or Hinglish phrase fully into English. Never output Devanagari or Roman Hindi.
-        Preserve the exact meaning, tone, names, code, URLs and technical terminology.
-        Remove filler words, repetition and abandoned phrases. Apply the speaker's final correction.
-        Improve grammar and punctuation, but never add new ideas.
-        Return plain text only—no Markdown, code fences, backticks, labels, preface or surrounding quotes.
-        """
+        let prompt = processingPrompt
         let body = AudioChatRequest(
             model: settings.polishModel,
             messages: [.init(role: "user", content: [
@@ -164,6 +147,27 @@ nonisolated struct ProviderClient: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
         return try JSONDecoder().decode(TranscriptionResponse.self, from: data).text
+    }
+
+    private var processingPrompt: String {
+        let dictionary = settings.personalDictionary
+            .filter { !$0.spoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { "- \($0.spoken) → \($0.replacement)" }
+            .joined(separator: "\n")
+        let vocabulary = dictionary.isEmpty ? "" : """
+
+        Preferred vocabulary and exact spellings:
+        \(dictionary)
+        """
+        return """
+        You are the final writing layer for voice dictation.
+        \(settings.outputMode.instruction)
+        Preserve the exact intent, names, code, URLs, filenames, and technical terms.
+        Remove filler words, repetition, and abandoned phrases unless Verbatim mode requires them.
+        Respect the speaker's final self-correction. Never add facts or new ideas.
+        Return plain text only. Never use code fences, surrounding quotes, labels, or a preface.
+        \(vocabulary)
+        """
     }
 
     private func sanitize(_ value: String) -> String {

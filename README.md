@@ -6,6 +6,15 @@ Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polis
 
 ## Features
 
+### v0.2
+
+- Guided onboarding and permission setup
+- System and provider diagnostics
+- Eight output modes, including English translation, professional, concise, technical, bullets, and verbatim
+- Personal dictionary for names and exact spellings
+- Optional local transcript history with retention controls
+- Retry failed dictation without recording again
+- Configurable push-to-talk shortcuts
 - Native SwiftUI menu-bar app
 - Hold-to-talk `Fn` shortcut
 - Floating microphone, waveform, processing, success, and error states
@@ -16,6 +25,10 @@ Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polis
 - API keys stored in macOS Keychain
 - Temporary audio cleanup
 - No account, telemetry, advertising, or hard-coded credentials
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version-by-version release notes.
 
 ## Requirements
 

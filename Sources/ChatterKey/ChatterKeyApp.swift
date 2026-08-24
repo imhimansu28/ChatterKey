@@ -27,6 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         AppState.shared.start()
+        if !AppState.shared.onboardingComplete {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                OnboardingWindowController.shared.show(appState: AppState.shared)
+            }
+        }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {

@@ -2,28 +2,30 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class SettingsWindowController: NSObject, NSWindowDelegate {
-    static let shared = SettingsWindowController()
+final class OnboardingWindowController: NSObject, NSWindowDelegate {
+    static let shared = OnboardingWindowController()
     private var window: NSWindow?
 
     func show(appState: AppState) {
         if window == nil {
-            let content = SettingsView().environmentObject(appState)
-            let controller = NSHostingController(rootView: content)
+            let controller = NSHostingController(rootView: OnboardingView().environmentObject(appState))
             let window = NSWindow(contentViewController: controller)
-            window.title = "ChatterKey Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 650, height: 680))
-            window.minSize = NSSize(width: 650, height: 680)
+            window.title = "Welcome to ChatterKey"
+            window.styleMask = [.titled, .closable]
+            window.setContentSize(NSSize(width: 640, height: 560))
+            window.minSize = NSSize(width: 640, height: 560)
             window.isReleasedWhenClosed = false
             window.center()
             window.delegate = self
             self.window = window
         }
-
         NSApp.activate(ignoringOtherApps: true)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
+    }
+
+    func close() {
+        window?.orderOut(nil)
     }
 }

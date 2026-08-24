@@ -21,8 +21,14 @@ struct DictationPillView: View {
             Spacer(minLength: 4)
 
             if case .failed = appState.phase {
-                Button("Dismiss") { appState.cancel() }
-                    .buttonStyle(PillButtonStyle())
+                HStack(spacing: 6) {
+                    if appState.canRetry {
+                        Button("Retry") { appState.retryLastDictation() }
+                            .buttonStyle(PillButtonStyle())
+                    }
+                    Button("Dismiss") { appState.cancel() }
+                        .buttonStyle(PillButtonStyle())
+                }
             } else if appState.phase == .processing {
                 ProgressView().controlSize(.small).tint(.white)
             } else if appState.phase == .listening {
@@ -74,9 +80,9 @@ struct DictationPillView: View {
 
     private var subtitle: String {
         switch appState.phase {
-        case .idle: "Hold Fn to talk"
-        case .listening: "Release Fn to insert"
-        case .processing: "Cleaning your Hinglish…"
+        case .idle: "Hold \(appState.settings.hotkeyShortcut.title) to talk"
+        case .listening: "Release \(appState.settings.hotkeyShortcut.title) to insert"
+        case .processing: "Applying \(appState.settings.outputMode.shortTitle)…"
         case .inserted: "Text is ready"
         case .failed(let message): message
         }
