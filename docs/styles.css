@@ -75,7 +75,7 @@ img { max-width: 100%; display: block; }
 .hero-proof b { color: var(--ink); font-weight: 600; }
 
 .hero-visual { position: relative; min-width: 0; }
-.hero-visual img { position: relative; z-index: 2; width: 100%; border-radius: 30px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.9); }
+.hero-visual img { position: relative; z-index: 2; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: contain; border-radius: 30px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.9); }
 .visual-glow { position: absolute; inset: 16% 10%; background: #9696ff; filter: blur(80px); opacity: .24; }
 .floating-chip { position: absolute; z-index: 3; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.9); border: 1px solid white; border-radius: 13px; padding: 9px 12px; box-shadow: 0 14px 40px rgba(22,23,29,.14); backdrop-filter: blur(16px); font-size: 11px; font-weight: 650; }
 .floating-chip kbd { min-width: 29px; height: 27px; display: grid; place-items: center; border: 1px solid #d9d9df; border-bottom-width: 3px; border-radius: 7px; background: white; font: 650 10px inherit; }
