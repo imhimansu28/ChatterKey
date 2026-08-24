@@ -1,0 +1,35 @@
+# Swift build output
+.build/
+.swiftpm/
+DerivedData/
+
+# Packaged applications and release artifacts
+dist/
+*.app
+*.dmg
+*.zip
+
+# Xcode user state
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.p12
+*.cer
+*.mobileprovision
+*.key
+*.pem
+Secrets.swift
+Config.local.swift
+
+# Local agent/workspace files
+AGENTS.md
