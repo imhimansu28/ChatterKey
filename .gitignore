@@ -33,3 +33,6 @@ Config.local.swift
 
 # Local agent/workspace files
 AGENTS.md
+
+# Generated image workspace
+.generated-images/

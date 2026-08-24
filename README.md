@@ -4,6 +4,10 @@ Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polis
 
 > Bring your own API key. Audio is sent directly to the provider selected by the user; this project does not operate a transcription proxy or collect analytics.
 
+## Website
+
+Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
+
 ## Features
 
 ### v0.2
