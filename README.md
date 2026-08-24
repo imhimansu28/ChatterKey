@@ -15,6 +15,9 @@ Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polis
 - Optional local transcript history with retention controls
 - Retry failed dictation without recording again
 - Configurable push-to-talk shortcuts
+- Local voice snippets for reusable text expansion
+- Spoken formatting commands with English and Hinglish phrases
+- Clipboard preservation after automatic insertion
 - Native SwiftUI menu-bar app
 - Hold-to-talk `Fn` shortcut
 - Floating microphone, waveform, processing, success, and error states

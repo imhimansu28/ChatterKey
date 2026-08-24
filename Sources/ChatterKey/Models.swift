@@ -133,6 +133,12 @@ nonisolated struct DictionaryEntry: Codable, Identifiable, Hashable, Sendable {
     var replacement: String
 }
 
+nonisolated struct VoiceSnippet: Codable, Identifiable, Hashable, Sendable {
+    var id = UUID()
+    var cue: String
+    var content: String
+}
+
 nonisolated struct DictationHistoryItem: Codable, Identifiable, Sendable {
     var id = UUID()
     let text: String
@@ -163,6 +169,8 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     var outputMode: OutputMode = .translateEnglish
     var hotkeyShortcut: HotkeyShortcut = .function
     var personalDictionary: [DictionaryEntry] = []
+    var voiceSnippets: [VoiceSnippet] = []
+    var spokenCommandsEnabled = true
     var historyEnabled = false
     var historyRetentionDays = 7
 
@@ -174,6 +182,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         case provider, baseURL, transcriptionModel, polishModel
         case smartPolish, preserveHinglish, fastSinglePass
         case outputMode, hotkeyShortcut, personalDictionary
+        case voiceSnippets, spokenCommandsEnabled
         case historyEnabled, historyRetentionDays
     }
 
@@ -190,6 +199,8 @@ nonisolated struct ProviderSettings: Codable, Sendable {
             ?? (legacyTranslate ? .translateEnglish : .cleanSameLanguage)
         hotkeyShortcut = try values.decodeIfPresent(HotkeyShortcut.self, forKey: .hotkeyShortcut) ?? .function
         personalDictionary = try values.decodeIfPresent([DictionaryEntry].self, forKey: .personalDictionary) ?? []
+        voiceSnippets = try values.decodeIfPresent([VoiceSnippet].self, forKey: .voiceSnippets) ?? []
+        spokenCommandsEnabled = try values.decodeIfPresent(Bool.self, forKey: .spokenCommandsEnabled) ?? true
         historyEnabled = try values.decodeIfPresent(Bool.self, forKey: .historyEnabled) ?? false
         historyRetentionDays = try values.decodeIfPresent(Int.self, forKey: .historyRetentionDays) ?? 7
     }
@@ -206,6 +217,8 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(outputMode, forKey: .outputMode)
         try values.encode(hotkeyShortcut, forKey: .hotkeyShortcut)
         try values.encode(personalDictionary, forKey: .personalDictionary)
+        try values.encode(voiceSnippets, forKey: .voiceSnippets)
+        try values.encode(spokenCommandsEnabled, forKey: .spokenCommandsEnabled)
         try values.encode(historyEnabled, forKey: .historyEnabled)
         try values.encode(historyRetentionDays, forKey: .historyRetentionDays)
     }

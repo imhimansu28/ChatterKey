@@ -5,20 +5,16 @@ import CoreGraphics
 enum TextInserter {
     static func insert(_ text: String) throws {
         let pasteboard = NSPasteboard.general
-        let previous = pasteboard.pasteboardItems?.compactMap { item -> [String: Data]? in
-            var values: [String: Data] = [:]
-            for type in item.types {
-                if let data = item.data(forType: type) { values[type.rawValue] = data }
-            }
-            return values
-        }
+        let previousItems = snapshot(pasteboard)
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        let transcriptChangeCount = pasteboard.changeCount
 
         guard let source = CGEventSource(stateID: .hidSystemState),
               let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
+            restore(previousItems, to: pasteboard)
             throw InsertError.couldNotPaste
         }
         keyDown.flags = .maskCommand
@@ -26,19 +22,29 @@ enum TextInserter {
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
 
-        if let previous {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(700))
-                pasteboard.clearContents()
-                for values in previous {
-                    let item = NSPasteboardItem()
-                    for (rawType, data) in values {
-                        item.setData(data, forType: NSPasteboard.PasteboardType(rawType))
-                    }
-                    pasteboard.writeObjects([item])
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            // Do not overwrite something the user copied after dictation.
+            guard pasteboard.changeCount == transcriptChangeCount else { return }
+            restore(previousItems, to: pasteboard)
+        }
+    }
+
+    private static func restore(_ items: [NSPasteboardItem], to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+        if !items.isEmpty { pasteboard.writeObjects(items) }
+    }
+
+    private static func snapshot(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {
+        pasteboard.pasteboardItems?.map { source in
+            let copy = NSPasteboardItem()
+            for type in source.types {
+                if let data = source.data(forType: type) {
+                    copy.setData(data, forType: type)
                 }
             }
-        }
+            return copy
+        } ?? []
     }
 }
 

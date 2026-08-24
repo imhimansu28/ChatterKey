@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-08-24
+
+### Added
+
+- Redesigned Settings with a modern macOS sidebar, focused detail pages, reusable cards, empty states, and a persistent action footer.
+- Voice snippets that expand short spoken cues into exact reusable text after transcription.
+- Optional spoken formatting commands for new lines, paragraphs, bullets, and punctuation, including common Hinglish variants.
+
+### Fixed
+
+- Removed the stale keyboard-focus border from previously selected Settings sidebar items and disabled unnecessary section transition animation.
+- Clipboard restoration now preserves multiple pasteboard item types and avoids overwriting content copied by the user immediately after dictation.
+
+### Changed
+
+- Updated the packaged application version to `0.2.4` with build number `4`.
+
 ## [0.2.1] - 2026-08-24
 
 ### Changed

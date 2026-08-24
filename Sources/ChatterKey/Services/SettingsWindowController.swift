@@ -12,9 +12,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             let controller = NSHostingController(rootView: content)
             let window = NSWindow(contentViewController: controller)
             window.title = "ChatterKey Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 650, height: 680))
-            window.minSize = NSSize(width: 650, height: 680)
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.setContentSize(NSSize(width: 840, height: 660))
+            window.minSize = NSSize(width: 800, height: 620)
             window.isReleasedWhenClosed = false
             window.center()
             window.delegate = self

@@ -8,14 +8,16 @@ nonisolated struct ProviderClient: Sendable {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
         let audio = try Data(contentsOf: audioURL)
 
+        let output: String
         if settings.provider == .openRouter,
            settings.fastSinglePass,
            settings.smartPolish {
-            return try await processOpenRouterSinglePass(audio: audio)
+            output = try await processOpenRouterSinglePass(audio: audio)
+        } else {
+            let raw = try await transcribe(audioURL: audioURL)
+            output = try await polish(raw)
         }
-
-        let raw = try await transcribe(audioURL: audioURL)
-        return try await polish(raw)
+        return VoiceTextProcessor.process(output, settings: settings)
     }
 
     func transcribe(audioURL: URL) async throws -> String {
@@ -159,6 +161,20 @@ nonisolated struct ProviderClient: Sendable {
         Preferred vocabulary and exact spellings:
         \(dictionary)
         """
+        let snippetCues = settings.voiceSnippets
+            .map(\.cue)
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { "- \($0)" }
+            .joined(separator: "\n")
+        let snippets = snippetCues.isEmpty ? "" : """
+
+        Voice snippet cues: preserve these cue phrases exactly when spoken so the local app can expand them after transcription:
+        \(snippetCues)
+        """
+        let commands = settings.spokenCommandsEnabled ? """
+
+        Interpret spoken formatting commands such as new line, new paragraph, bullet point, comma, full stop, and question mark. Apply the formatting and do not output the command words literally.
+        """ : ""
         return """
         You are the final writing layer for voice dictation.
         \(settings.outputMode.instruction)
@@ -167,6 +183,8 @@ nonisolated struct ProviderClient: Sendable {
         Respect the speaker's final self-correction. Never add facts or new ideas.
         Return plain text only. Never use code fences, surrounding quotes, labels, or a preface.
         \(vocabulary)
+        \(snippets)
+        \(commands)
         """
     }
 

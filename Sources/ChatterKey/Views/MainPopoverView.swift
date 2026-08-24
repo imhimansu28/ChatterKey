@@ -31,7 +31,7 @@ struct MainPopoverView: View {
                 .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("ChatterKey").font(.system(size: 15, weight: .semibold))
-                    Text("v0.2.1").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
+                    Text("v0.2.4").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
                 }
             }
             Spacer()
