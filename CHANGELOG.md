@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Added editable system instructions with a restore-default action and an exact provider-prompt preview in Settings.
+- Added a public architecture diagram and transparent processing overview to the README.
+
+### Changed
+
+- Documented how custom prompts, vocabulary, temporary audio, provider requests, and local preferences are handled.
+
 ## [0.3.1] - 2026-08-25
 
 ### Added

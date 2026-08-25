@@ -164,6 +164,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     var baseURL = AIProvider.openAI.defaultBaseURL
     var transcriptionModel = AIProvider.openAI.defaultTranscriptionModel
     var polishModel = AIProvider.openAI.defaultPolishModel
+    var systemPrompt = Self.defaultSystemPrompt
     var smartPolish = true
     var fastSinglePass = true
     var outputMode: OutputMode = .translateEnglish
@@ -177,6 +178,12 @@ nonisolated struct ProviderSettings: Codable, Sendable {
 
     static let storageKey = "provider-settings"
     private static let starterContentMigrationKey = "starter-content-v1-installed"
+
+    static let defaultSystemPrompt = """
+    You are the final writing layer for voice dictation.
+    Preserve the speaker's meaning while making the result clear, natural, and ready to use.
+    Follow the selected writing mode without adding unsupported facts or ideas.
+    """
 
     static let starterVocabulary = [
         DictionaryEntry(spoken: "chat gpt", replacement: "ChatGPT"),
@@ -209,7 +216,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case provider, baseURL, transcriptionModel, polishModel
+        case provider, baseURL, transcriptionModel, polishModel, systemPrompt
         case smartPolish, preserveHinglish, fastSinglePass
         case outputMode, hotkeyShortcut, personalDictionary
         case voiceSnippets, spokenCommandsEnabled, liveTranscriptionEnabled
@@ -222,6 +229,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         baseURL = try values.decodeIfPresent(String.self, forKey: .baseURL) ?? provider.defaultBaseURL
         transcriptionModel = try values.decodeIfPresent(String.self, forKey: .transcriptionModel) ?? provider.defaultTranscriptionModel
         polishModel = try values.decodeIfPresent(String.self, forKey: .polishModel) ?? provider.defaultPolishModel
+        systemPrompt = try values.decodeIfPresent(String.self, forKey: .systemPrompt) ?? Self.defaultSystemPrompt
         smartPolish = try values.decodeIfPresent(Bool.self, forKey: .smartPolish) ?? true
         fastSinglePass = try values.decodeIfPresent(Bool.self, forKey: .fastSinglePass) ?? true
         let legacyTranslate = try values.decodeIfPresent(Bool.self, forKey: .preserveHinglish) ?? true
@@ -242,6 +250,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(baseURL, forKey: .baseURL)
         try values.encode(transcriptionModel, forKey: .transcriptionModel)
         try values.encode(polishModel, forKey: .polishModel)
+        try values.encode(systemPrompt, forKey: .systemPrompt)
         try values.encode(smartPolish, forKey: .smartPolish)
         try values.encode(fastSinglePass, forKey: .fastSinglePass)
         try values.encode(outputMode == .translateEnglish, forKey: .preserveHinglish)

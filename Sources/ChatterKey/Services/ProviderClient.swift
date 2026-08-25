@@ -64,7 +64,7 @@ nonisolated struct ProviderClient: Sendable {
 
     func polish(_ transcript: String) async throws -> String {
         guard settings.smartPolish, !settings.polishModel.isEmpty else { return transcript }
-        return try await complete(system: processingPrompt, user: transcript)
+        return try await complete(system: effectiveProcessingPrompt, user: transcript)
     }
 
     private func complete(system: String, user: String) async throws -> String {
@@ -149,7 +149,7 @@ nonisolated struct ProviderClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
 
-        let prompt = processingPrompt
+        let prompt = effectiveProcessingPrompt
         let body = AudioChatRequest(
             model: settings.polishModel,
             messages: [.init(role: "user", content: [
@@ -211,7 +211,7 @@ nonisolated struct ProviderClient: Sendable {
         return try JSONDecoder().decode(TranscriptionResponse.self, from: data).text
     }
 
-    private var processingPrompt: String {
+    var effectiveProcessingPrompt: String {
         let dictionary = settings.personalDictionary
             .filter { !$0.spoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .map { "- \($0.spoken) → \($0.replacement)" }
@@ -235,8 +235,12 @@ nonisolated struct ProviderClient: Sendable {
 
         Interpret spoken formatting commands such as new line, new paragraph, bullet point, comma, full stop, and question mark. Apply the formatting and do not output the command words literally.
         """ : ""
+        let customInstructions = settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseInstructions = customInstructions.isEmpty ? ProviderSettings.defaultSystemPrompt : customInstructions
         return """
-        You are the final writing layer for voice dictation.
+        \(baseInstructions)
+
+        Active writing mode:
         \(settings.outputMode.instruction)
         Preserve the exact intent, names, code, URLs, filenames, and technical terms.
         Remove filler words, repetition, and abandoned phrases unless Verbatim mode requires them.

@@ -3,6 +3,7 @@ import SwiftUI
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case provider
+    case instructions
     case vocabulary
     case snippets
     case diagnostics
@@ -13,6 +14,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .provider: "AI Provider"
+        case .instructions: "AI Instructions"
         case .vocabulary: "Vocabulary"
         case .snippets: "Voice Snippets"
         case .diagnostics: "Diagnostics"
@@ -23,6 +25,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: "Writing, shortcut, and local history"
         case .provider: "Connection, API key, and model selection"
+        case .instructions: "Review and customize how AI prepares your text"
         case .vocabulary: "Names and terms ChatterKey should spell exactly"
         case .snippets: "Reusable text expanded from short voice cues"
         case .diagnostics: "Permissions, shortcut, Keychain, and provider checks"
@@ -33,6 +36,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: "slider.horizontal.3"
         case .provider: "sparkles"
+        case .instructions: "text.bubble"
         case .vocabulary: "character.book.closed"
         case .snippets: "text.badge.plus"
         case .diagnostics: "waveform.path.ecg"
@@ -171,6 +175,7 @@ struct SettingsView: View {
                 switch selectedSection {
                 case .general: generalContent
                 case .provider: providerContent
+                case .instructions: instructionsContent
                 case .vocabulary: vocabularyContent
                 case .snippets: snippetsContent
                 case .diagnostics: diagnosticsContent
@@ -329,6 +334,73 @@ struct SettingsView: View {
                 } icon: {
                     Image(systemName: "checkmark.shield.fill").foregroundStyle(.green)
                 }
+            }
+        }
+    }
+
+    private var instructionsContent: some View {
+        VStack(spacing: 16) {
+            settingsCard("Custom system prompt", icon: "text.bubble") {
+                Text("Edit the core instruction used for normal dictation and fast single-pass processing. Writing mode, vocabulary, snippets, and output safeguards are added automatically.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                TextEditor(text: $draft.systemPrompt)
+                    .font(.system(size: 11.5, design: .monospaced))
+                    .frame(minHeight: 160)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(.background, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.7)
+                    )
+
+                HStack {
+                    Text("Stored locally with your app settings.")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Restore Default") {
+                        draft.systemPrompt = ProviderSettings.defaultSystemPrompt
+                    }
+                    .controlSize(.small)
+                }
+            }
+
+            settingsCard("What is always added", icon: "eye") {
+                transparencyRow("Selected writing mode", detail: "The active mode adds its exact style and language instruction.")
+                cardDivider
+                transparencyRow("Your vocabulary and snippet cues", detail: "Saved terms and cue phrases are included so the provider can preserve them.")
+                cardDivider
+                transparencyRow("Output safeguards", detail: "ChatterKey requests plain text, preserves intent, and blocks invented facts or extra commentary.")
+            }
+
+            settingsCard("Exact provider prompt", icon: "doc.text.magnifyingglass") {
+                Text("This is the complete writing prompt generated from the current draft settings.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                ScrollView {
+                    Text(ProviderClient(settings: draft, apiKey: "").effectiveProcessingPrompt)
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(10)
+                }
+                .frame(height: 150)
+                .background(.background, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.7)
+                )
+            }
+
+            settingsCard("Magic Voice Edit", icon: "wand.and.stars") {
+                Text("Magic Voice Edit uses a separate task-specific instruction so selected text is changed only according to what you say. Your vocabulary is included automatically.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -542,6 +614,23 @@ struct SettingsView: View {
         }
     }
 
+    private func transparencyRow(_ title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(.green)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 12.5, weight: .medium))
+                Text(detail)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+    }
+
     private func toggleRow(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 3) {
@@ -591,6 +680,9 @@ struct SettingsView: View {
 
     private func save() {
         do {
+            if draft.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                draft.systemPrompt = ProviderSettings.defaultSystemPrompt
+            }
             draft.personalDictionary = draft.personalDictionary.filter {
                 !$0.spoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
                 !$0.replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

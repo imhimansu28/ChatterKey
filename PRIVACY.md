@@ -5,13 +5,13 @@ ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey 
 ## Data that stays on the Mac
 
 - Provider API keys are stored in macOS Keychain.
-- Preferences such as provider, model IDs, and processing options are stored in `UserDefaults`.
+- Preferences such as provider, model IDs, processing options, vocabulary, snippets, and custom system instructions are stored in `UserDefaults`.
 - The last transcript exists in app memory for recovery and is not written to the repository or a project server.
 - ChatterKey temporarily uses the clipboard to paste generated text, then attempts to restore the previous clipboard contents.
 
 ## Data sent to providers
 
-When cloud processing is used, recorded audio and processing instructions are sent directly from the Mac to the provider selected by the user, such as OpenAI or OpenRouter. When Magic Voice Edit is active, the selected text is also sent to that provider so it can create the requested replacement. The resulting transcript is returned directly to the app. Provider privacy, retention, regional processing, and training policies apply independently; users should review them before use.
+When cloud processing is used, recorded audio and processing instructions—including the selected writing mode, custom system prompt, and relevant vocabulary—are sent directly from the Mac to the provider selected by the user, such as OpenAI or OpenRouter. When Magic Voice Edit is active, the selected text is also sent to that provider so it can create the requested replacement. The resulting transcript is returned directly to the app. Provider privacy, retention, regional processing, and training policies apply independently; users should review them before use.
 
 Custom provider URLs receive the same request data. Only configure providers you trust.
 

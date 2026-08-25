@@ -13,7 +13,33 @@ Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polis
 
 Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 
+## How ChatterKey works
+
+<p align="center">
+  <img src="docs/assets/chatterkey-architecture.png" width="100%" alt="ChatterKey voice typing architecture and processing flow">
+</p>
+
+1. A native SwiftUI menu-bar app listens for the configured hold-to-talk shortcut.
+2. AVFoundation records a temporary WAV file and optionally shows an on-device live preview.
+3. The app sends audio directly to the selected provider for transcription.
+4. The selected writing mode, editable system prompt, vocabulary, and formatting rules guide the final result.
+5. Local processing expands voice snippets and normalizes spoken formatting commands.
+6. macOS Accessibility inserts the finished text into the currently focused app.
+
+### Transparent by design
+
+- **Editable AI instructions:** The core system prompt is visible and customizable in **Settings → AI Instructions**.
+- **Direct provider connection:** Audio, prompts, and selected text used by Magic Voice Edit go directly to the provider configured by the user.
+- **Local secrets and preferences:** API keys stay in macOS Keychain; preferences and custom instructions are stored locally.
+- **Temporary audio:** Recordings are deleted after successful processing or cancellation, with short-lived retention only when an explicit retry is available.
+- **No hidden collection layer:** ChatterKey has no account requirement, analytics SDK, advertising SDK, or project-operated transcription proxy.
+
 ## Features
+
+- Editable custom system prompt with a clearly documented automatic context layer
+- Personal vocabulary, local voice snippets, writing modes, and spoken formatting commands
+- Bring-your-own provider, API key, transcription model, and polishing model
+- Live transcription preview and Magic Voice Edit
 
 ### v0.3.1
 
