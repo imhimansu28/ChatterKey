@@ -133,3 +133,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - API key storage in macOS Keychain.
 - Temporary audio cleanup and public-source safety checks.
 - Privacy, security, distribution, and MIT license documentation.
+
+[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
+[0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1
+[0.3.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.0
+[0.2.4]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.4
+[0.2.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.1
+[0.2.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.0
+[0.1.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.1.0

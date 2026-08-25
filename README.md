@@ -42,57 +42,19 @@ Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 - Live transcription preview and Magic Voice Edit
 - Local dashboard for words spoken, speaking time, estimated provider cost, and communication insights
 
-### v0.4.0
+## Version history
 
-- Custom AI system instructions with an exact generated-prompt preview
-- Unified Settings pages for Dashboard and complete local dictation History
-- Whole-process cost estimates covering transcription and optional AI polishing
-- Local words, speaking time, WPM, daily activity, and provider cost breakdowns
-- Speaking insights for repeated phrases, filler words, and overly long thoughts
-- Editable transcription and token cost rates for provider/model flexibility
-- Compact recent-dictation card with Copy and View More actions
+Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use the version links below for downloads and release notes.
 
-### v0.3.1
-
-- More reliable provider requests with bounded timeouts and transient-network retry
-- Compact 16 kHz mono audio uploads alongside the live transcript preview
-- Automatic speech-to-text fallback when fast single-pass processing is unavailable
-- Starter vocabulary and editable general-purpose voice snippets
-- New ChatterKey application icon across macOS and the product website
-
-### v0.3
-
-- Optional on-device live transcript preview in the floating pill while speaking
-- Magic Voice Edit for rewriting selected text with spoken instructions
-- Speech Recognition permission controls and diagnostics
-- Expanded live overlay that transitions back to the compact completion state
-
-### v0.2
-
-- Guided onboarding and permission setup
-- System and provider diagnostics
-- Eight output modes, including English translation, professional, concise, technical, bullets, and verbatim
-- Personal dictionary for names and exact spellings
-- Optional local transcript history with retention controls
-- Retry failed dictation without recording again
-- Configurable push-to-talk shortcuts
-- Local voice snippets for reusable text expansion
-- Spoken formatting commands with English and Hinglish phrases
-- Clipboard preservation after automatic insertion
-- Native SwiftUI menu-bar app
-- Hold-to-talk `Fn` shortcut
-- Floating microphone, waveform, processing, success, and error states
-- Automatic insertion into the focused app
-- OpenAI, OpenRouter, and custom compatible provider configuration
-- Fast single-pass audio-to-English processing on supported OpenRouter models
-- Optional Hindi/Hinglish-to-English cleanup
-- API keys stored in macOS Keychain
-- Temporary audio cleanup
-- No account, telemetry, advertising, or hard-coded credentials
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version-by-version release notes.
+| Version | Released | Links |
+| --- | --- | --- |
+| `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
+| `v0.3.1` | August 25, 2026 | [Release notes][release-v0.3.1] · [Detailed changes](CHANGELOG.md#031---2026-08-25) |
+| `v0.3.0` | August 25, 2026 | [Release notes][release-v0.3.0] · [Detailed changes](CHANGELOG.md#030---2026-08-25) |
+| `v0.2.4` | August 24, 2026 | [Release notes][release-v0.2.4] · [Detailed changes](CHANGELOG.md#024---2026-08-24) |
+| `v0.2.1` | August 24, 2026 | [Release notes][release-v0.2.1] · [Detailed changes](CHANGELOG.md#021---2026-08-24) |
+| `v0.2.0` | August 24, 2026 | [Release notes][release-v0.2.0] · [Detailed changes](CHANGELOG.md#020---2026-08-24) |
+| `v0.1.0` | August 24, 2026 | [Release notes][release-v0.1.0] · [Detailed changes](CHANGELOG.md#010---2026-08-24) |
 
 ## Requirements
 
@@ -151,3 +113,11 @@ Issues and pull requests are welcome. Never include real API keys, private audio
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+[release-v0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
+[release-v0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1
+[release-v0.3.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.0
+[release-v0.2.4]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.4
+[release-v0.2.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.1
+[release-v0.2.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.2.0
+[release-v0.1.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.1.0
