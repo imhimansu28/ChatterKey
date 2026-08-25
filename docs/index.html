@@ -13,7 +13,7 @@
   <meta property="og:image" content="https://imhimansu28.github.io/ChatterKey/assets/chatterkey-hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=20260825-1">
+  <link rel="stylesheet" href="styles.css?v=20260825-2">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -24,7 +24,7 @@
     "description": "AI voice typing for macOS that turns natural speech into polished, ready-to-use text.",
     "softwareVersion": "0.3.0",
     "license": "https://opensource.org/license/mit",
-    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/latest"
+    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v0.3.0/ChatterKey-v0.3.0.zip"
   }
   </script>
 </head>
@@ -37,14 +37,17 @@
       <img src="assets/logo.svg" alt="" width="34" height="34">
       <span>ChatterKey</span>
     </a>
-    <nav aria-label="Main navigation">
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="Open navigation menu">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="main-navigation" aria-label="Main navigation">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
       <a href="#use-cases">Use cases</a>
       <a href="#privacy">Privacy</a>
       <a href="https://github.com/imhimansu28/ChatterKey/blob/main/CHANGELOG.md">Changelog</a>
     </nav>
-    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/latest">Download <span>v0.3.0</span></a>
+    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v0.3.0/ChatterKey-v0.3.0.zip" aria-label="Download ChatterKey version 0.3.0">Download <span>v0.3.0</span></a>
   </header>
 
   <main id="top">
@@ -57,7 +60,7 @@
           <span>New in v0.3</span><strong>Live transcription + Magic Voice Edit</strong><b>→</b>
         </a>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/latest">
+          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v0.3.0/ChatterKey-v0.3.0.zip" aria-label="Download ChatterKey version 0.3.0 ZIP for macOS">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
             Download for macOS
           </a>
@@ -196,31 +199,31 @@
 
       <div class="use-case-layout">
         <div class="use-case-tabs" role="tablist" aria-label="Use cases">
-          <button class="use-tab active" data-case="founders" role="tab" aria-selected="true"><span>01</span> Founders & teams</button>
-          <button class="use-tab" data-case="developers" role="tab" aria-selected="false"><span>02</span> Developers</button>
-          <button class="use-tab" data-case="creators" role="tab" aria-selected="false"><span>03</span> Creators & students</button>
-          <button class="use-tab" data-case="support" role="tab" aria-selected="false"><span>04</span> Support & sales</button>
+          <button id="use-tab-founders" class="use-tab active" type="button" data-case="founders" role="tab" aria-selected="true" aria-controls="use-panel-founders" tabindex="0"><span>01</span> Founders & teams</button>
+          <button id="use-tab-developers" class="use-tab" type="button" data-case="developers" role="tab" aria-selected="false" aria-controls="use-panel-developers" tabindex="-1"><span>02</span> Developers</button>
+          <button id="use-tab-creators" class="use-tab" type="button" data-case="creators" role="tab" aria-selected="false" aria-controls="use-panel-creators" tabindex="-1"><span>03</span> Creators & students</button>
+          <button id="use-tab-support" class="use-tab" type="button" data-case="support" role="tab" aria-selected="false" aria-controls="use-panel-support" tabindex="-1"><span>04</span> Support & sales</button>
         </div>
         <div class="use-case-panel">
-          <div class="use-copy active" data-panel="founders">
+          <div id="use-panel-founders" class="use-copy active" data-panel="founders" role="tabpanel" aria-labelledby="use-tab-founders" tabindex="0">
             <span class="pill">Founders & teams</span>
             <h3>Turn fast thoughts into clear communication.</h3>
             <p>Dictate Slack updates, product notes, meeting summaries, and client emails without slowing down to translate or type.</p>
             <ul><li>Professional email mode</li><li>Reusable meeting snippets</li><li>Concise team updates</li></ul>
           </div>
-          <div class="use-copy" data-panel="developers">
+          <div id="use-panel-developers" class="use-copy" data-panel="developers" role="tabpanel" aria-labelledby="use-tab-developers" tabindex="0" hidden>
             <span class="pill">Developers</span>
             <h3>Explain code while your hands stay in flow.</h3>
             <p>Write prompts, documentation, GitHub issues, code review notes, and technical messages with identifiers preserved.</p>
             <ul><li>Technical output mode</li><li>Exact command and filename handling</li><li>Custom vocabulary for your stack</li></ul>
           </div>
-          <div class="use-copy" data-panel="creators">
+          <div id="use-panel-creators" class="use-copy" data-panel="creators" role="tabpanel" aria-labelledby="use-tab-creators" tabindex="0" hidden>
             <span class="pill">Creators & students</span>
             <h3>Capture ideas before they disappear.</h3>
             <p>Speak rough ideas and transform them into outlines, posts, notes, or polished drafts.</p>
             <ul><li>Bullet and concise modes</li><li>Natural English translation</li><li>Optional local text history</li></ul>
           </div>
-          <div class="use-copy" data-panel="support">
+          <div id="use-panel-support" class="use-copy" data-panel="support" role="tabpanel" aria-labelledby="use-tab-support" tabindex="0" hidden>
             <span class="pill">Support & sales</span>
             <h3>Reply faster without sounding repetitive.</h3>
             <p>Use voice snippets for standard answers, then personalize the rest naturally for each customer.</p>
@@ -271,7 +274,7 @@
       <h2>Stop translating your thoughts.<br>Start expressing them.</h2>
       <p>Speak naturally. Write confidently—anywhere on your Mac.</p>
       <div class="hero-actions centered">
-        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/latest">Download ChatterKey</a>
+        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v0.3.0/ChatterKey-v0.3.0.zip" aria-label="Download ChatterKey version 0.3.0 ZIP for macOS">Download ChatterKey</a>
         <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey">Explore the source</a>
       </div>
       <small>Free and open source · macOS 14+ · Bring your own API key</small>
@@ -290,6 +293,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=20260824-3"></script>
+  <script src="script.js?v=20260825-1"></script>
 </body>
 </html>
