@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added a dedicated ChatterKey macOS application icon across Finder and system surfaces.
 - Added privacy-safe starter vocabulary for common technology names and three editable general-purpose voice snippets for new and existing users.
 
 ### Fixed

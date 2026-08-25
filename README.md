@@ -1,4 +1,9 @@
-# ChatterKey — AI Voice Typing for macOS
+<p align="center">
+  <img src="Resources/AppIcon.png" width="128" alt="ChatterKey app icon">
+</p>
+
+<h1 align="center">ChatterKey</h1>
+<p align="center"><strong>AI Voice Typing for macOS</strong></p>
 
 Hold **Fn**, speak naturally, and release. ChatterKey converts speech into polished text and inserts it into the focused macOS app.
 

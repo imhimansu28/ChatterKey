@@ -51,7 +51,7 @@ img { max-width: 100%; display: block; }
   backdrop-filter: blur(22px) saturate(150%);
 }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 720; letter-spacing: -.02em; white-space: nowrap; }
-.brand img { border-radius: 10px; }
+.brand img { border-radius: 10px; filter: drop-shadow(0 4px 10px rgba(20,24,34,.18)); }
 .site-header nav { display: flex; gap: 28px; margin-left: auto; }
 .site-header nav a { color: var(--muted); font-size: 13px; font-weight: 550; transition: color .2s; }
 .site-header nav a:hover { color: var(--ink); }
@@ -197,7 +197,8 @@ img { max-width: 100%; display: block; }
 @keyframes provider-float-one { 50% { transform: translate(8px,-7px); } }
 @keyframes provider-float-two { 50% { transform: translate(-7px,8px); } }
 @keyframes provider-float-three { 50% { transform: translate(7px,6px); } }
-.key-core { z-index: 2; width: 110px; height: 110px; display: grid; place-items: center; border-radius: 34px; background: #24252c; box-shadow: 0 0 70px rgba(91,92,226,.34); animation: core-breathe 4.8s ease-in-out infinite; }
+.key-core { z-index: 2; width: 110px; height: 110px; display: grid; place-items: center; border-radius: 30px; box-shadow: 0 0 70px rgba(91,92,226,.34); animation: core-breathe 4.8s ease-in-out infinite; }
+.key-core img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 24px rgba(0,0,0,.28)); }
 .provider { position: absolute; z-index: 3; width: 92px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; background: rgba(34,35,41,.88); color: rgba(255,255,255,.7); box-shadow: 0 12px 36px rgba(0,0,0,.22); backdrop-filter: blur(12px); font-size: 10px; font-weight: 680; transition: color .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease; }
 .provider::after { content: "↗"; position: absolute; top: 16px; right: 17px; color: rgba(255,255,255,.35); font-size: 8px; transition: color .2s ease, transform .2s ease; }
 .provider-mark { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; background: rgba(119,120,237,.14); color: #9b9cff; font: 700 9px ui-monospace,SFMono-Regular,monospace; letter-spacing: -.03em; }
