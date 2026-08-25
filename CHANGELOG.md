@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-25
+
 ### Added
 
 - Added a dedicated ChatterKey macOS application icon across Finder and system surfaces.
@@ -17,6 +19,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Restored compact 16 kHz mono PCM audio uploads while keeping the on-device live transcription preview, reducing payload size and provider latency.
 - Added an automatic dedicated speech-to-text fallback when OpenRouter single-pass audio processing times out or loses its connection.
 - Automatically dismisses the failure overlay after showing the error while keeping the recorded audio available for Retry.
+
+### Changed
+
+- Updated the packaged application version to `0.3.1` with build number `6`.
 
 ## [0.3.0] - 2026-08-25
 

@@ -15,6 +15,14 @@ Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 
 ## Features
 
+### v0.3.1
+
+- More reliable provider requests with bounded timeouts and transient-network retry
+- Compact 16 kHz mono audio uploads alongside the live transcript preview
+- Automatic speech-to-text fallback when fast single-pass processing is unavailable
+- Starter vocabulary and editable general-purpose voice snippets
+- New ChatterKey application icon across macOS and the product website
+
 ### v0.3
 
 - Optional on-device live transcript preview in the floating pill while speaking
