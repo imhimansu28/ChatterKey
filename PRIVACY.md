@@ -6,6 +6,7 @@ ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey 
 
 - Provider API keys are stored in macOS Keychain.
 - Preferences such as provider, model IDs, processing options, vocabulary, snippets, and custom system instructions are stored in `UserDefaults`.
+- Dashboard records store local aggregate metadata such as date, provider/model names, word count, audio duration, estimated cost, and generated speaking suggestions. They do not store transcript text or audio.
 - The last transcript exists in app memory for recovery and is not written to the repository or a project server.
 - ChatterKey temporarily uses the clipboard to paste generated text, then attempts to restore the previous clipboard contents.
 

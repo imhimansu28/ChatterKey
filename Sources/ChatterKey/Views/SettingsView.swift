@@ -1,7 +1,9 @@
 import SwiftUI
 
-private enum SettingsSection: String, CaseIterable, Identifiable {
+enum SettingsSection: String, CaseIterable, Identifiable {
     case general
+    case dashboard
+    case history
     case provider
     case instructions
     case vocabulary
@@ -13,6 +15,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: "General"
+        case .dashboard: "Dashboard"
+        case .history: "History"
         case .provider: "AI Provider"
         case .instructions: "AI Instructions"
         case .vocabulary: "Vocabulary"
@@ -23,7 +27,9 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .general: "Writing, shortcut, and local history"
+        case .general: "Writing, shortcut, and local preferences"
+        case .dashboard: "Usage, estimated cost, and speaking insights"
+        case .history: "Recent dictations stored locally on this Mac"
         case .provider: "Connection, API key, and model selection"
         case .instructions: "Review and customize how AI prepares your text"
         case .vocabulary: "Names and terms ChatterKey should spell exactly"
@@ -35,6 +41,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: "slider.horizontal.3"
+        case .dashboard: "chart.xyaxis.line"
+        case .history: "clock.arrow.circlepath"
         case .provider: "sparkles"
         case .instructions: "text.bubble"
         case .vocabulary: "character.book.closed"
@@ -44,9 +52,15 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     }
 }
 
+@MainActor
+final class SettingsNavigation: ObservableObject {
+    static let shared = SettingsNavigation()
+    @Published var selectedSection: SettingsSection = .general
+}
+
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var selectedSection: SettingsSection = .general
+    @ObservedObject private var navigation = SettingsNavigation.shared
     @State private var draft = ProviderSettings.load()
     @State private var apiKey = ""
     @State private var status = ""
@@ -61,7 +75,7 @@ struct SettingsView: View {
                 Divider()
                 detailContent
                 Divider()
-                footer
+                detailFooter
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
@@ -101,7 +115,7 @@ struct SettingsView: View {
                         var transaction = Transaction(animation: nil)
                         transaction.disablesAnimations = true
                         withTransaction(transaction) {
-                            selectedSection = section
+                            navigation.selectedSection = section
                         }
                     } label: {
                         HStack(spacing: 11) {
@@ -112,12 +126,12 @@ struct SettingsView: View {
                                 .font(.system(size: 13, weight: .medium))
                             Spacer()
                         }
-                        .foregroundStyle(selectedSection == section ? Color.primary : Color.secondary)
+                        .foregroundStyle(navigation.selectedSection == section ? Color.primary : Color.secondary)
                         .padding(.horizontal, 11)
                         .frame(height: 36)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(selectedSection == section ? Color.accentColor.opacity(0.14) : .clear)
+                                .fill(navigation.selectedSection == section ? Color.accentColor.opacity(0.14) : .clear)
                         )
                     }
                     .buttonStyle(.plain)
@@ -151,15 +165,15 @@ struct SettingsView: View {
 
     private var detailHeader: some View {
         HStack(spacing: 14) {
-            Image(systemName: selectedSection.icon)
+            Image(systemName: navigation.selectedSection.icon)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 38, height: 38)
                 .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 3) {
-                Text(selectedSection.title)
+                Text(navigation.selectedSection.title)
                     .font(.system(size: 20, weight: .semibold))
-                Text(selectedSection.subtitle)
+                Text(navigation.selectedSection.subtitle)
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
@@ -172,8 +186,10 @@ struct SettingsView: View {
     @ViewBuilder private var detailContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                switch selectedSection {
+                switch navigation.selectedSection {
                 case .general: generalContent
+                case .dashboard: DashboardView(embedded: true)
+                case .history: HistoryView(embedded: true)
                 case .provider: providerContent
                 case .instructions: instructionsContent
                 case .vocabulary: vocabularyContent
@@ -185,7 +201,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .scrollIndicators(.visible)
-        .animation(nil, value: selectedSection)
+        .animation(nil, value: navigation.selectedSection)
     }
 
     private var generalContent: some View {
@@ -303,6 +319,7 @@ struct SettingsView: View {
                         draft.baseURL = provider.defaultBaseURL
                         draft.transcriptionModel = provider.defaultTranscriptionModel
                         draft.polishModel = provider.defaultPolishModel
+                        draft.costRates = provider.defaultCostRates
                         apiKey = appState.apiKey(for: provider)
                         status = ""
                     }
@@ -322,6 +339,28 @@ struct SettingsView: View {
                     Label("Fast mode needs an audio-capable model.", systemImage: "bolt.fill")
                         .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            settingsCard("Cost estimation", icon: "dollarsign.circle") {
+                Text("Dashboard costs are local estimates. Update these rates whenever your provider or model pricing changes.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                cardDivider
+                numberFieldRow("Transcription", detail: "USD per audio minute", value: $draft.costRates.transcriptionPerMinute)
+                cardDivider
+                numberFieldRow("Input tokens", detail: "USD per 1 million tokens", value: $draft.costRates.inputPerMillionTokens)
+                cardDivider
+                numberFieldRow("Output tokens", detail: "USD per 1 million tokens", value: $draft.costRates.outputPerMillionTokens)
+                cardDivider
+                HStack {
+                    Text("Use provider defaults")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Reset Rates") { draft.costRates = draft.provider.defaultCostRates }
+                        .controlSize(.small)
                 }
             }
 
@@ -537,6 +576,32 @@ struct SettingsView: View {
         .onAppear { appState.runDiagnostics() }
     }
 
+    @ViewBuilder private var detailFooter: some View {
+        switch navigation.selectedSection {
+        case .dashboard:
+            localOnlyFooter("Usage totals and speaking insights stay on this Mac.")
+        case .history:
+            localOnlyFooter("Transcript history stays on this Mac and follows your retention setting.")
+        default:
+            footer
+        }
+    }
+
+    private func localOnlyFooter(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(.green)
+            Text(message)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 48)
+        .background(.bar)
+    }
+
     private var footer: some View {
         HStack(spacing: 10) {
             if isTesting {
@@ -647,6 +712,20 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             TextField(placeholder, text: text).textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private func numberFieldRow(_ title: String, detail: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 12.5, weight: .medium))
+                Text(detail).font(.system(size: 10.5)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            TextField("0", value: value, format: .number.precision(.fractionLength(0...6)))
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 120)
         }
     }
 

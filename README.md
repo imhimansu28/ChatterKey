@@ -30,7 +30,7 @@ Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 
 - **Editable AI instructions:** The core system prompt is visible and customizable in **Settings → AI Instructions**.
 - **Direct provider connection:** Audio, prompts, and selected text used by Magic Voice Edit go directly to the provider configured by the user.
-- **Local secrets and preferences:** API keys stay in macOS Keychain; preferences and custom instructions are stored locally.
+- **Local secrets and preferences:** API keys stay in macOS Keychain; preferences, custom instructions, and aggregate usage metrics are stored locally.
 - **Temporary audio:** Recordings are deleted after successful processing or cancellation, with short-lived retention only when an explicit retry is available.
 - **No hidden collection layer:** ChatterKey has no account requirement, analytics SDK, advertising SDK, or project-operated transcription proxy.
 
@@ -40,6 +40,17 @@ Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 - Personal vocabulary, local voice snippets, writing modes, and spoken formatting commands
 - Bring-your-own provider, API key, transcription model, and polishing model
 - Live transcription preview and Magic Voice Edit
+- Local dashboard for words spoken, speaking time, estimated provider cost, and communication insights
+
+### v0.4.0
+
+- Custom AI system instructions with an exact generated-prompt preview
+- Unified Settings pages for Dashboard and complete local dictation History
+- Whole-process cost estimates covering transcription and optional AI polishing
+- Local words, speaking time, WPM, daily activity, and provider cost breakdowns
+- Speaking insights for repeated phrases, filler words, and overly long thoughts
+- Editable transcription and token cost rates for provider/model flexibility
+- Compact recent-dictation card with Copy and View More actions
 
 ### v0.3.1
 

@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published var magicEditActive = false
     @Published var settings: ProviderSettings
     @Published var history: [DictationHistoryItem]
+    @Published var usageRecords: [UsageRecord]
     @Published var diagnostics: [DiagnosticItem] = []
     @Published var diagnosticsRunning = false
     @Published var accessibilityGranted = false
@@ -36,6 +37,7 @@ final class AppState: ObservableObject {
         history = loadedSettings.historyEnabled
             ? HistoryStore.load(retentionDays: loadedSettings.historyRetentionDays)
             : []
+        usageRecords = UsageStore.load()
         onboardingComplete = UserDefaults.standard.bool(forKey: Self.onboardingKey)
 
         hotkey.configure(loadedSettings.hotkeyShortcut)
@@ -164,12 +166,12 @@ final class AppState: ObservableObject {
             return
         }
         retryAudioURL = url
-        processAudio(at: url)
+        processAudio(at: url, spokenDraft: liveTranscript)
     }
 
     func retryLastDictation() {
         guard let retryAudioURL else { return }
-        processAudio(at: retryAudioURL)
+        processAudio(at: retryAudioURL, spokenDraft: liveTranscript)
     }
 
     func cancel() {
@@ -206,6 +208,11 @@ final class AppState: ObservableObject {
     func clearHistory() {
         history = []
         HistoryStore.clear()
+    }
+
+    func clearUsage() {
+        usageRecords = []
+        UsageStore.clear()
     }
 
     func setOutputMode(_ mode: OutputMode) {
@@ -250,7 +257,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func processAudio(at url: URL) {
+    private func processAudio(at url: URL, spokenDraft: String) {
         phase = .processing
         OverlayController.shared.show(appState: self)
         let currentSettings = settings
@@ -265,6 +272,12 @@ final class AppState: ObservableObject {
                 )
                 try Task.checkCancellation()
                 lastTranscript = final
+                addUsage(
+                    finalText: final,
+                    spokenText: spokenDraft,
+                    audioURL: url,
+                    settings: currentSettings
+                )
                 do {
                     try TextInserter.insert(final)
                 } catch {
@@ -293,6 +306,39 @@ final class AppState: ObservableObject {
                 fail(error.localizedDescription)
             }
         }
+    }
+
+    private func addUsage(
+        finalText: String,
+        spokenText: String,
+        audioURL: URL,
+        settings: ProviderSettings
+    ) {
+        let source = spokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? finalText : spokenText
+        let duration: Double
+        if let file = try? AVAudioFile(forReading: audioURL), file.processingFormat.sampleRate > 0 {
+            duration = Double(file.length) / file.processingFormat.sampleRate
+        } else {
+            duration = 0
+        }
+        let record = UsageRecord(
+            createdAt: Date(),
+            provider: settings.provider,
+            transcriptionModel: settings.transcriptionModel,
+            polishModel: settings.polishModel,
+            wordCount: UsageAnalytics.wordCount(source),
+            audioDurationSeconds: duration,
+            estimatedCostUSD: UsageAnalytics.estimatedCost(
+                durationSeconds: duration,
+                spokenText: source,
+                finalText: finalText,
+                settings: settings
+            ),
+            suggestions: UsageAnalytics.suggestions(for: source)
+        )
+        usageRecords.insert(record, at: 0)
+        usageRecords = Array(usageRecords.prefix(1_000))
+        UsageStore.save(usageRecords)
     }
 
     private func addHistory(_ text: String, mode: OutputMode) {

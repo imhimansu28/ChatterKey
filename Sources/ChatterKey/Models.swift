@@ -38,6 +38,17 @@ nonisolated enum AIProvider: String, CaseIterable, Codable, Identifiable, Sendab
         case .custom: ""
         }
     }
+
+    var defaultCostRates: CostRates {
+        switch self {
+        case .openAI:
+            CostRates(transcriptionPerMinute: 0.003, inputPerMillionTokens: 0.40, outputPerMillionTokens: 1.60)
+        case .openRouter:
+            CostRates(transcriptionPerMinute: 0.003, inputPerMillionTokens: 0.10, outputPerMillionTokens: 0.40)
+        case .custom:
+            CostRates(transcriptionPerMinute: 0, inputPerMillionTokens: 0, outputPerMillionTokens: 0)
+        }
+    }
 }
 
 nonisolated enum OutputMode: String, CaseIterable, Codable, Identifiable, Sendable {
@@ -127,6 +138,24 @@ nonisolated enum HotkeyShortcut: String, CaseIterable, Codable, Identifiable, Se
     }
 }
 
+nonisolated struct CostRates: Codable, Sendable {
+    var transcriptionPerMinute: Double
+    var inputPerMillionTokens: Double
+    var outputPerMillionTokens: Double
+}
+
+nonisolated struct UsageRecord: Codable, Identifiable, Sendable {
+    var id = UUID()
+    let createdAt: Date
+    let provider: AIProvider
+    let transcriptionModel: String
+    let polishModel: String
+    let wordCount: Int
+    let audioDurationSeconds: Double
+    let estimatedCostUSD: Double
+    let suggestions: [String]
+}
+
 nonisolated struct DictionaryEntry: Codable, Identifiable, Hashable, Sendable {
     var id = UUID()
     var spoken: String
@@ -165,6 +194,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     var transcriptionModel = AIProvider.openAI.defaultTranscriptionModel
     var polishModel = AIProvider.openAI.defaultPolishModel
     var systemPrompt = Self.defaultSystemPrompt
+    var costRates = AIProvider.openAI.defaultCostRates
     var smartPolish = true
     var fastSinglePass = true
     var outputMode: OutputMode = .translateEnglish
@@ -216,7 +246,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case provider, baseURL, transcriptionModel, polishModel, systemPrompt
+        case provider, baseURL, transcriptionModel, polishModel, systemPrompt, costRates
         case smartPolish, preserveHinglish, fastSinglePass
         case outputMode, hotkeyShortcut, personalDictionary
         case voiceSnippets, spokenCommandsEnabled, liveTranscriptionEnabled
@@ -230,6 +260,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         transcriptionModel = try values.decodeIfPresent(String.self, forKey: .transcriptionModel) ?? provider.defaultTranscriptionModel
         polishModel = try values.decodeIfPresent(String.self, forKey: .polishModel) ?? provider.defaultPolishModel
         systemPrompt = try values.decodeIfPresent(String.self, forKey: .systemPrompt) ?? Self.defaultSystemPrompt
+        costRates = try values.decodeIfPresent(CostRates.self, forKey: .costRates) ?? provider.defaultCostRates
         smartPolish = try values.decodeIfPresent(Bool.self, forKey: .smartPolish) ?? true
         fastSinglePass = try values.decodeIfPresent(Bool.self, forKey: .fastSinglePass) ?? true
         let legacyTranslate = try values.decodeIfPresent(Bool.self, forKey: .preserveHinglish) ?? true
@@ -251,6 +282,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(transcriptionModel, forKey: .transcriptionModel)
         try values.encode(polishModel, forKey: .polishModel)
         try values.encode(systemPrompt, forKey: .systemPrompt)
+        try values.encode(costRates, forKey: .costRates)
         try values.encode(smartPolish, forKey: .smartPolish)
         try values.encode(fastSinglePass, forKey: .fastSinglePass)
         try values.encode(outputMode == .translateEnglish, forKey: .preserveHinglish)

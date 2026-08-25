@@ -31,7 +31,7 @@ struct MainPopoverView: View {
                 .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("ChatterKey").font(.system(size: 15, weight: .semibold))
-                    Text("v0.3.1").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
+                    Text("v\(appVersion)").font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
                 }
             }
             Spacer()
@@ -111,28 +111,38 @@ struct MainPopoverView: View {
     }
 
     @ViewBuilder private var transcriptSection: some View {
-        if appState.settings.historyEnabled, !appState.history.isEmpty {
+        if appState.settings.historyEnabled, let item = appState.history.first {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("RECENT DICTATIONS").font(.system(size: 9, weight: .bold)).foregroundStyle(.tertiary)
-                    Spacer()
-                    Button("Clear") { appState.clearHistory() }.buttonStyle(.plain).font(.caption)
-                }
-                ForEach(appState.history.prefix(3)) { item in
-                    HStack(alignment: .top, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.text).font(.system(size: 11)).lineLimit(2)
-                            Text(item.outputMode.shortTitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button { appState.copy(item.text) } label: { Image(systemName: "doc.on.doc") }
-                            .buttonStyle(.borderless)
-                        Button { appState.insert(item) } label: { Image(systemName: "arrow.turn.down.left") }
-                            .buttonStyle(.borderless)
+                Text("RECENT DICTATION")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.tertiary)
+
+                HStack(alignment: .center, spacing: 9) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.text)
+                            .font(.system(size: 11))
+                            .lineLimit(2)
+                        Text(item.outputMode.shortTitle)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(10)
-                    .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+                    Spacer(minLength: 8)
+                    Button { appState.copy(item.text) } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Copy")
+                    Button("View More") {
+                        SettingsWindowController.shared.show(appState: appState, section: .history)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.indigo)
                 }
+                .padding(10)
+                .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+                .shadow(color: .black.opacity(appState.history.count > 1 ? 0.08 : 0), radius: 7, y: 4)
+                .padding(.bottom, appState.history.count > 1 ? 2 : 0)
             }
         } else if !appState.lastTranscript.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
@@ -150,7 +160,7 @@ struct MainPopoverView: View {
     private var footer: some View {
         HStack(spacing: 8) {
             FooterActionButton(title: "Diagnostics", systemImage: "stethoscope") {
-                SettingsWindowController.shared.show(appState: appState)
+                SettingsWindowController.shared.show(appState: appState, section: .diagnostics)
                 appState.runDiagnostics()
             }
             Spacer(minLength: 8)
@@ -173,6 +183,10 @@ struct MainPopoverView: View {
             Spacer()
             Text(ready ? "Ready" : "Required").font(.system(size: 10)).foregroundStyle(.secondary)
         }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
     }
 
     private var statusText: String {
