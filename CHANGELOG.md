@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Added privacy-safe starter vocabulary for common technology names and three editable general-purpose voice snippets for new and existing users.
+
+### Fixed
+
+- Prevented provider requests from hanging on stale connections by using isolated sessions, one transient-network retry, and bounded processing timeouts.
+- Restored compact 16 kHz mono PCM audio uploads while keeping the on-device live transcription preview, reducing payload size and provider latency.
+- Added an automatic dedicated speech-to-text fallback when OpenRouter single-pass audio processing times out or loses its connection.
+- Automatically dismisses the failure overlay after showing the error while keeping the recorded audio available for Retry.
+
 ## [0.3.0] - 2026-08-25
 
 ### Added

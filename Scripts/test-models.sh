@@ -9,6 +9,10 @@ import Foundation
 @main
 struct ModelHarness {
     static func main() throws {
+        let defaults = ProviderSettings()
+        precondition(defaults.personalDictionary.contains { $0.replacement == "ChatGPT" })
+        precondition(defaults.voiceSnippets.contains { $0.cue == "insert quick thanks" })
+
         var settings = ProviderSettings()
         settings.outputMode = .technical
         settings.hotkeyShortcut = .optionSpace

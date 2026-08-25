@@ -5,6 +5,24 @@ nonisolated struct ProviderClient: Sendable {
     let apiKey: String
 
     func process(audioURL: URL, editing selectedText: String? = nil) async throws -> String {
+        let timeout: Duration = .seconds(40)
+
+        return try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask {
+                try await processWithoutTimeout(audioURL: audioURL, editing: selectedText)
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw ProviderError.timedOut
+            }
+
+            defer { group.cancelAll() }
+            guard let result = try await group.next() else { throw ProviderError.invalidResponse }
+            return result
+        }
+    }
+
+    private func processWithoutTimeout(audioURL: URL, editing selectedText: String?) async throws -> String {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
 
         if let selectedText, !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -17,7 +35,12 @@ nonisolated struct ProviderClient: Sendable {
         if settings.provider == .openRouter,
            settings.fastSinglePass,
            settings.smartPolish {
-            output = try await processOpenRouterSinglePass(audio: audio)
+            do {
+                output = try await processOpenRouterSinglePass(audio: audio)
+            } catch where shouldFallBackToTranscription(after: error) {
+                let raw = try await transcribe(audioURL: audioURL)
+                output = try await polish(raw)
+            }
         } else {
             let raw = try await transcribe(audioURL: audioURL)
             output = try await polish(raw)
@@ -51,7 +74,7 @@ nonisolated struct ProviderClient: Sendable {
         let endpoint = baseURL.appendingPathComponent("chat/completions")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 30
+        request.timeoutInterval = 20
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if settings.provider == .openRouter {
@@ -67,7 +90,7 @@ nonisolated struct ProviderClient: Sendable {
             temperature: 0.1
         )
         request.httpBody = try JSONEncoder().encode(body)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await requestData(for: request)
         try validate(response: response, data: data)
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
         guard let output = decoded.choices.first?.message.content, !output.isEmpty else {
@@ -109,8 +132,8 @@ nonisolated struct ProviderClient: Sendable {
         guard let baseURL = URL(string: settings.baseURL) else { throw ProviderError.invalidBaseURL }
         var request = URLRequest(url: baseURL.appendingPathComponent("models"))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 15
-        let (data, response) = try await URLSession.shared.data(for: request)
+        request.timeoutInterval = 12
+        let (data, response) = try await requestData(for: request)
         try validate(response: response, data: data)
     }
 
@@ -121,7 +144,7 @@ nonisolated struct ProviderClient: Sendable {
         let endpoint = baseURL.appendingPathComponent("chat/completions")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 45
+        request.timeoutInterval = 12
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
@@ -138,7 +161,7 @@ nonisolated struct ProviderClient: Sendable {
             provider: .init(sort: "latency")
         )
         request.httpBody = try JSONEncoder().encode(body)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await requestData(for: request, retryTransientErrors: false)
         try validate(response: response, data: data)
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
         guard let output = decoded.choices.first?.message.content, !output.isEmpty else {
@@ -150,7 +173,7 @@ nonisolated struct ProviderClient: Sendable {
     private func transcribeOpenRouter(audio: Data, endpoint: URL) async throws -> String {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60
+        request.timeoutInterval = 25
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
@@ -159,7 +182,7 @@ nonisolated struct ProviderClient: Sendable {
             inputAudio: .init(data: audio.base64EncodedString(), format: "wav")
         )
         request.httpBody = try JSONEncoder().encode(body)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await requestData(for: request)
         try validate(response: response, data: data)
         return try JSONDecoder().decode(TranscriptionResponse.self, from: data).text
     }
@@ -168,7 +191,7 @@ nonisolated struct ProviderClient: Sendable {
         let boundary = "Boundary-\(UUID().uuidString)"
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60
+        request.timeoutInterval = 25
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
@@ -183,7 +206,7 @@ nonisolated struct ProviderClient: Sendable {
         body.append("--\(boundary)--\r\n")
         request.httpBody = body
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await requestData(for: request)
         try validate(response: response, data: data)
         return try JSONDecoder().decode(TranscriptionResponse.self, from: data).text
     }
@@ -223,6 +246,57 @@ nonisolated struct ProviderClient: Sendable {
         \(snippets)
         \(commands)
         """
+    }
+
+    private func requestData(
+        for request: URLRequest,
+        retryTransientErrors: Bool = true
+    ) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        let attemptCount = retryTransientErrors ? 2 : 1
+
+        for attempt in 0..<attemptCount {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.waitsForConnectivity = false
+            configuration.timeoutIntervalForRequest = request.timeoutInterval
+            configuration.timeoutIntervalForResource = request.timeoutInterval
+            let session = URLSession(configuration: configuration)
+
+            do {
+                let result = try await session.data(for: request)
+                session.finishTasksAndInvalidate()
+                return result
+            } catch {
+                session.invalidateAndCancel()
+                lastError = error
+                guard attempt == 0, retryTransientErrors, shouldRetry(error) else {
+                    if (error as? URLError)?.code == .timedOut {
+                        throw ProviderError.timedOut
+                    }
+                    throw error
+                }
+                try await Task.sleep(for: .milliseconds(250))
+            }
+        }
+
+        throw lastError ?? ProviderError.invalidResponse
+    }
+
+    private func shouldFallBackToTranscription(after error: Error) -> Bool {
+        if error is URLError { return true }
+        guard let providerError = error as? ProviderError else { return false }
+        if case .timedOut = providerError { return true }
+        return false
+    }
+
+    private func shouldRetry(_ error: Error) -> Bool {
+        guard let error = error as? URLError else { return false }
+        return [
+            .networkConnectionLost,
+            .cannotConnectToHost,
+            .cannotFindHost,
+            .dnsLookupFailed
+        ].contains(error.code)
     }
 
     private func sanitize(_ value: String) -> String {
@@ -325,6 +399,7 @@ nonisolated enum ProviderError: LocalizedError {
     case missingAPIKey
     case invalidBaseURL
     case invalidResponse
+    case timedOut
     case api(String)
 
     var errorDescription: String? {
@@ -332,6 +407,7 @@ nonisolated enum ProviderError: LocalizedError {
         case .missingAPIKey: "Settings mein provider API key add karein."
         case .invalidBaseURL: "The provider base URL is invalid."
         case .invalidResponse: "The provider returned an invalid response."
+        case .timedOut: "Processing took too long. Please retry."
         case .api(let message): message
         }
     }

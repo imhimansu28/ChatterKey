@@ -158,7 +158,11 @@ final class AppState: ObservableObject {
     }
 
     func finishDictation() {
-        guard phase == .listening, let url = recorder.stop() else { return }
+        guard phase == .listening else { return }
+        guard let url = recorder.stop() else {
+            fail("The recording could not be prepared for transcription. Please retry.")
+            return
+        }
         retryAudioURL = url
         processAudio(at: url)
     }
@@ -342,5 +346,11 @@ final class AppState: ObservableObject {
     private func fail(_ message: String) {
         phase = .failed(message)
         OverlayController.shared.show(appState: self)
+
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard let self, self.phase == .failed(message) else { return }
+            OverlayController.shared.hide()
+        }
     }
 }

@@ -176,8 +176,37 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     var historyRetentionDays = 7
 
     static let storageKey = "provider-settings"
+    private static let starterContentMigrationKey = "starter-content-v1-installed"
 
-    init() {}
+    static let starterVocabulary = [
+        DictionaryEntry(spoken: "chat gpt", replacement: "ChatGPT"),
+        DictionaryEntry(spoken: "open ai", replacement: "OpenAI"),
+        DictionaryEntry(spoken: "open router", replacement: "OpenRouter"),
+        DictionaryEntry(spoken: "github", replacement: "GitHub"),
+        DictionaryEntry(spoken: "mac os", replacement: "macOS"),
+        DictionaryEntry(spoken: "javascript", replacement: "JavaScript"),
+        DictionaryEntry(spoken: "typescript", replacement: "TypeScript")
+    ]
+
+    static let starterSnippets = [
+        VoiceSnippet(
+            cue: "insert quick thanks",
+            content: "Thanks! I’ll get back to you shortly."
+        ),
+        VoiceSnippet(
+            cue: "insert review request",
+            content: "Please review this and let me know if you have any feedback."
+        ),
+        VoiceSnippet(
+            cue: "insert meeting follow up",
+            content: "Thanks for your time today. Here’s a quick summary of the next steps:"
+        )
+    ]
+
+    init() {
+        personalDictionary = Self.starterVocabulary
+        voiceSnippets = Self.starterSnippets
+    }
 
     private enum CodingKeys: String, CodingKey {
         case provider, baseURL, transcriptionModel, polishModel
@@ -227,11 +256,33 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     }
 
     static func load() -> ProviderSettings {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let value = try? JSONDecoder().decode(Self.self, from: data) else {
-            return ProviderSettings()
+        let defaults = UserDefaults.standard
+        var value: ProviderSettings
+        if let data = defaults.data(forKey: storageKey),
+           let decoded = try? JSONDecoder().decode(Self.self, from: data) {
+            value = decoded
+        } else {
+            value = ProviderSettings()
+        }
+
+        if !defaults.bool(forKey: starterContentMigrationKey) {
+            value.addStarterContent()
+            value.save()
+            defaults.set(true, forKey: starterContentMigrationKey)
         }
         return value
+    }
+
+    private mutating func addStarterContent() {
+        let existingWords = Set(personalDictionary.map { $0.spoken.lowercased() })
+        personalDictionary.append(contentsOf: Self.starterVocabulary.filter {
+            !existingWords.contains($0.spoken.lowercased())
+        })
+
+        let existingCues = Set(voiceSnippets.map { $0.cue.lowercased() })
+        voiceSnippets.append(contentsOf: Self.starterSnippets.filter {
+            !existingCues.contains($0.cue.lowercased())
+        })
     }
 
     func save() {

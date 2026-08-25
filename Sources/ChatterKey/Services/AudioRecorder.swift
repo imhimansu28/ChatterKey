@@ -8,6 +8,7 @@ final class AudioRecorder {
     private var audioFile: AVAudioFile?
     private var speechRequest: SFSpeechAudioBufferRecognitionRequest?
     private var speechTask: SFSpeechRecognitionTask?
+    private var captureURL: URL?
     private(set) var outputURL: URL?
 
     var speechRecognitionGranted: Bool {
@@ -50,7 +51,9 @@ final class AudioRecorder {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("ChatterKey", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("dictation-\(UUID().uuidString).wav")
+        let identifier = UUID().uuidString
+        let captureURL = directory.appendingPathComponent("capture-\(identifier).caf")
+        let outputURL = directory.appendingPathComponent("dictation-\(identifier).wav")
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -59,7 +62,7 @@ final class AudioRecorder {
             throw RecorderError.couldNotStart
         }
 
-        let file = try AVAudioFile(forWriting: url, settings: format.settings)
+        let file = try AVAudioFile(forWriting: captureURL, settings: format.settings)
         let request = makeSpeechRequest(enabled: liveTranscription, onPartialTranscript: onPartialTranscript)
 
         installAudioTap(on: input, format: format, file: file, speechRequest: request)
@@ -72,19 +75,32 @@ final class AudioRecorder {
             speechTask?.cancel()
             speechTask = nil
             speechRequest = nil
-            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: captureURL)
             throw RecorderError.couldNotStart
         }
 
         self.engine = engine
         audioFile = file
-        outputURL = url
+        self.captureURL = captureURL
+        self.outputURL = outputURL
     }
 
     func stop() -> URL? {
-        let url = outputURL
+        guard let captureURL, let outputURL else { return nil }
         stopCapture(removeFile: false)
-        return url
+
+        do {
+            try convertToProviderWAV(from: captureURL, to: outputURL)
+            try? FileManager.default.removeItem(at: captureURL)
+            self.captureURL = nil
+            return outputURL
+        } catch {
+            try? FileManager.default.removeItem(at: captureURL)
+            try? FileManager.default.removeItem(at: outputURL)
+            self.captureURL = nil
+            self.outputURL = nil
+            return nil
+        }
     }
 
     func cancel() {
@@ -126,17 +142,77 @@ final class AudioRecorder {
         audioFile = nil
         engine = nil
 
-        if removeFile, let outputURL {
-            try? FileManager.default.removeItem(at: outputURL)
+        if removeFile {
+            if let captureURL { try? FileManager.default.removeItem(at: captureURL) }
+            if let outputURL { try? FileManager.default.removeItem(at: outputURL) }
+            captureURL = nil
+            outputURL = nil
         }
-        if removeFile { outputURL = nil }
+    }
+
+    private func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL) throws {
+        let inputFile = try AVAudioFile(forReading: sourceURL)
+        let inputFormat = inputFile.processingFormat
+        guard let outputFormat = AVAudioFormat(
+            commonFormat: .pcmFormatInt16,
+            sampleRate: 16_000,
+            channels: 1,
+            interleaved: true
+        ),
+        let converter = AVAudioConverter(from: inputFormat, to: outputFormat),
+        let inputBuffer = AVAudioPCMBuffer(
+            pcmFormat: inputFormat,
+            frameCapacity: AVAudioFrameCount(inputFile.length)
+        ) else {
+            throw RecorderError.conversionFailed
+        }
+
+        try inputFile.read(into: inputBuffer)
+        let ratio = outputFormat.sampleRate / inputFormat.sampleRate
+        let outputCapacity = AVAudioFrameCount(ceil(Double(inputBuffer.frameLength) * ratio)) + 1_024
+        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: outputCapacity) else {
+            throw RecorderError.conversionFailed
+        }
+
+        let inputState = AudioConversionInputState()
+        var conversionError: NSError?
+        let status = converter.convert(to: outputBuffer, error: &conversionError) { _, inputStatus in
+            if inputState.wasSupplied {
+                inputStatus.pointee = .endOfStream
+                return nil
+            }
+            inputState.wasSupplied = true
+            inputStatus.pointee = .haveData
+            return inputBuffer
+        }
+        guard status != .error, conversionError == nil, outputBuffer.frameLength > 0 else {
+            throw conversionError ?? RecorderError.conversionFailed
+        }
+
+        let outputFile = try AVAudioFile(
+            forWriting: destinationURL,
+            settings: outputFormat.settings,
+            commonFormat: .pcmFormatInt16,
+            interleaved: true
+        )
+        try outputFile.write(from: outputBuffer)
     }
 }
 
 nonisolated enum RecorderError: LocalizedError {
     case couldNotStart
+    case conversionFailed
 
-    var errorDescription: String? { "Microphone recording could not start." }
+    var errorDescription: String? {
+        switch self {
+        case .couldNotStart: "Microphone recording could not start."
+        case .conversionFailed: "The recording could not be prepared for transcription."
+        }
+    }
+}
+
+private final class AudioConversionInputState: @unchecked Sendable {
+    var wasSupplied = false
 }
 
 private func installAudioTap(
