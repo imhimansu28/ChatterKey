@@ -65,6 +65,10 @@ img { max-width: 100%; display: block; }
 .hero h1 em { color: var(--accent); font-style: normal; }
 .hero-lead { max-width: 590px; margin: 0; color: var(--muted); font-size: 18px; line-height: 1.65; letter-spacing: -.012em; }
 .hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 11px; }
+.release-badge { width: fit-content; margin-top: 20px; padding: 8px 10px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(91,92,226,.16); border-radius: 999px; background: rgba(91,92,226,.07); color: var(--ink); font-size: 10px; font-weight: 620; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.release-badge span { color: var(--accent); font-size: 9px; font-weight: 760; letter-spacing: .08em; text-transform: uppercase; }
+.release-badge b { color: var(--accent); font-size: 12px; }
+.release-badge:hover { border-color: rgba(91,92,226,.3); background: rgba(91,92,226,.1); transform: translateY(-1px); }
 .button { height: 50px; padding: 0 19px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 13px; font-size: 13px; font-weight: 680; transition: transform .2s, box-shadow .2s, background .2s; }
 .button:hover { transform: translateY(-2px); }
 .button svg { width: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

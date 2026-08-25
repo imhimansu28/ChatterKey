@@ -124,9 +124,17 @@ struct OnboardingView: View {
             permissionCard(
                 icon: "accessibility",
                 title: "Accessibility",
-                detail: "Detect the shortcut and paste text",
+                detail: "Detect the shortcut, read selected text, and paste replacements",
                 ready: appState.accessibilityGranted
             )
+            if draft.liveTranscriptionEnabled {
+                permissionCard(
+                    icon: "waveform.badge.mic",
+                    title: "Speech Recognition",
+                    detail: "Show an on-device live transcript preview",
+                    ready: appState.speechRecognitionGranted
+                )
+            }
             HStack {
                 Button("Allow Permissions") { appState.requestPermissions() }
                     .buttonStyle(.borderedProminent)

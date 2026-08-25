@@ -10,6 +10,13 @@ Visit the ChatterKey product page: **https://imhimansu28.github.io/ChatterKey/**
 
 ## Features
 
+### v0.3
+
+- Optional on-device live transcript preview in the floating pill while speaking
+- Magic Voice Edit for rewriting selected text with spoken instructions
+- Speech Recognition permission controls and diagnostics
+- Expanded live overlay that transitions back to the compact completion state
+
 ### v0.2
 
 - Guided onboarding and permission setup
@@ -41,7 +48,8 @@ See [CHANGELOG.md](CHANGELOG.md) for version-by-version release notes.
 
 - macOS 14 or later
 - Microphone permission
-- Accessibility permission for the global shortcut and automatic paste
+- Accessibility permission for the global shortcut, selected-text editing, and automatic paste
+- Speech Recognition permission for the optional on-device live preview
 - An API key for the selected cloud provider
 
 ## Build
@@ -60,7 +68,7 @@ ditto dist/ChatterKey.app /Applications/ChatterKey.app
 open /Applications/ChatterKey.app
 ```
 
-On first launch, allow Microphone and Accessibility access in **System Settings → Privacy & Security**.
+On first launch, allow Microphone, Accessibility, and optional Speech Recognition access in **System Settings → Privacy & Security**.
 
 ## Default provider configuration
 

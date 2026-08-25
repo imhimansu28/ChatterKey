@@ -4,21 +4,66 @@ struct DictationPillView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        ZStack {
+        HStack(spacing: showsText ? 11 : 0) {
+            phaseVisual
+                .frame(width: 44, height: 30)
+                .transition(.scale(scale: 0.72).combined(with: .opacity))
+                .id(phaseID)
+
+            if showsText {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(statusLabel)
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .tracking(0.8)
+                        .foregroundStyle(appState.magicEditActive ? Color.indigo.opacity(0.95) : .white.opacity(0.45))
+                    Text(displayText)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(2)
+                        .truncationMode(.head)
+                        .frame(maxWidth: 252, alignment: .leading)
+                }
+            }
+        }
+        .padding(.horizontal, showsText ? 13 : 11)
+        .frame(width: pillWidth, height: 48)
+        .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color(red: 0.045, green: 0.045, blue: 0.055).opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.white.opacity(0.1), lineWidth: 0.75)
+                        .stroke(appState.magicEditActive ? Color.indigo.opacity(0.34) : .white.opacity(0.1), lineWidth: 0.75)
                 )
-
-            phaseVisual
-                .transition(.scale(scale: 0.72).combined(with: .opacity))
-                .id(phaseID)
-        }
-        .frame(width: 76, height: 44)
-        .padding(5)
+        )
+        .frame(width: 380, height: 64)
+        .animation(.spring(response: 0.3, dampingFraction: 0.78), value: pillWidth)
         .animation(.spring(response: 0.28, dampingFraction: 0.72), value: phaseID)
+    }
+
+    private var showsText: Bool {
+        switch appState.phase {
+        case .listening, .processing:
+            return appState.magicEditActive || !appState.liveTranscript.isEmpty
+        default:
+            return false
+        }
+    }
+
+    private var pillWidth: CGFloat { showsText ? 340 : 66 }
+
+    private var displayText: String {
+        if !appState.liveTranscript.isEmpty { return appState.liveTranscript }
+        if appState.magicEditActive {
+            return appState.phase == .processing
+                ? "Applying your voice edit…"
+                : "Say how you want to change the selection"
+        }
+        return ""
+    }
+
+    private var statusLabel: String {
+        if appState.magicEditActive { return "VOICE EDIT" }
+        return appState.phase == .processing ? "POLISHING" : "LIVE TRANSCRIPT"
     }
 
     @ViewBuilder private var phaseVisual: some View {

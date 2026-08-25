@@ -171,6 +171,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     var personalDictionary: [DictionaryEntry] = []
     var voiceSnippets: [VoiceSnippet] = []
     var spokenCommandsEnabled = true
+    var liveTranscriptionEnabled = true
     var historyEnabled = false
     var historyRetentionDays = 7
 
@@ -182,7 +183,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         case provider, baseURL, transcriptionModel, polishModel
         case smartPolish, preserveHinglish, fastSinglePass
         case outputMode, hotkeyShortcut, personalDictionary
-        case voiceSnippets, spokenCommandsEnabled
+        case voiceSnippets, spokenCommandsEnabled, liveTranscriptionEnabled
         case historyEnabled, historyRetentionDays
     }
 
@@ -201,6 +202,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         personalDictionary = try values.decodeIfPresent([DictionaryEntry].self, forKey: .personalDictionary) ?? []
         voiceSnippets = try values.decodeIfPresent([VoiceSnippet].self, forKey: .voiceSnippets) ?? []
         spokenCommandsEnabled = try values.decodeIfPresent(Bool.self, forKey: .spokenCommandsEnabled) ?? true
+        liveTranscriptionEnabled = try values.decodeIfPresent(Bool.self, forKey: .liveTranscriptionEnabled) ?? true
         historyEnabled = try values.decodeIfPresent(Bool.self, forKey: .historyEnabled) ?? false
         historyRetentionDays = try values.decodeIfPresent(Int.self, forKey: .historyRetentionDays) ?? 7
     }
@@ -219,6 +221,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(personalDictionary, forKey: .personalDictionary)
         try values.encode(voiceSnippets, forKey: .voiceSnippets)
         try values.encode(spokenCommandsEnabled, forKey: .spokenCommandsEnabled)
+        try values.encode(liveTranscriptionEnabled, forKey: .liveTranscriptionEnabled)
         try values.encode(historyEnabled, forKey: .historyEnabled)
         try values.encode(historyRetentionDays, forKey: .historyRetentionDays)
     }

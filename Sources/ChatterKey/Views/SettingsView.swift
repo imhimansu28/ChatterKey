@@ -206,6 +206,23 @@ struct SettingsView: View {
                 )
                 cardDivider
                 toggleRow(
+                    "Live transcription preview",
+                    detail: "Show rough on-device words while speaking. The provider still creates the final result.",
+                    isOn: $draft.liveTranscriptionEnabled
+                )
+                if draft.liveTranscriptionEnabled && !appState.speechRecognitionGranted {
+                    HStack {
+                        Label("Speech Recognition permission is required for the live preview.", systemImage: "waveform.badge.mic")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Allow") { appState.requestSpeechRecognitionPermission() }
+                            .controlSize(.small)
+                    }
+                    .padding(.top, 8)
+                }
+                cardDivider
+                toggleRow(
                     "Spoken formatting commands",
                     detail: "Use new line, paragraph, bullet, and punctuation commands in English or Hinglish.",
                     isOn: $draft.spokenCommandsEnabled

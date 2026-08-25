@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-25
+
+### Added
+
+- Optional on-device live transcription preview in the floating dictation overlay while recording.
+- Magic Voice Edit: select text in any accessible app, hold the shortcut, and speak an instruction to replace the selection.
+- Speech Recognition permission status, diagnostics, and Settings controls for live preview.
+
+### Fixed
+
+- Prevented the real-time audio callback from violating MainActor isolation and terminating the app when push-to-talk started.
+- Fixed Speech Recognition authorization and partial-result callbacks so permission requests and live previews no longer terminate the app.
+
+### Changed
+
+- Updated the packaged application version to `0.3.0` with build number `5`.
+
 ## [0.2.4] - 2026-08-24
 
 ### Added

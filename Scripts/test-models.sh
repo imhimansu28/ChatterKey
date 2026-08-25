@@ -17,6 +17,7 @@ struct ModelHarness {
         settings.personalDictionary = [DictionaryEntry(spoken: "chatter key", replacement: "ChatterKey")]
         settings.voiceSnippets = [VoiceSnippet(cue: "my email", content: "hello@example.com")]
         settings.spokenCommandsEnabled = false
+        settings.liveTranscriptionEnabled = false
 
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(ProviderSettings.self, from: data)
@@ -27,11 +28,13 @@ struct ModelHarness {
         precondition(decoded.personalDictionary.first?.replacement == "ChatterKey")
         precondition(decoded.voiceSnippets.first?.content == "hello@example.com")
         precondition(!decoded.spokenCommandsEnabled)
+        precondition(!decoded.liveTranscriptionEnabled)
 
         let legacy = Data(#"{"provider":"openAI","smartPolish":true,"preserveHinglish":true}"#.utf8)
         let migrated = try JSONDecoder().decode(ProviderSettings.self, from: legacy)
         precondition(migrated.outputMode == .translateEnglish)
         precondition(migrated.spokenCommandsEnabled)
+        precondition(migrated.liveTranscriptionEnabled)
         precondition(migrated.voiceSnippets.isEmpty)
 
         var processorSettings = ProviderSettings()
@@ -47,7 +50,7 @@ struct ModelHarness {
             precondition(!mode.title.isEmpty)
             precondition(mode.instruction.count > 20)
         }
-        print("v0.2 model tests passed")
+        print("v0.3 model tests passed")
     }
 }
 SWIFT

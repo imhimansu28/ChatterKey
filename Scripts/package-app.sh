@@ -15,11 +15,12 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key><string>ChatterKey</string>
   <key>CFBundleDisplayName</key><string>ChatterKey</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2.4</string>
-  <key>CFBundleVersion</key><string>4</string>
+  <key>CFBundleShortVersionString</key><string>0.3.0</string>
+  <key>CFBundleVersion</key><string>5</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key><string>ChatterKey needs microphone access to turn your voice into text.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>ChatterKey uses on-device speech recognition to show a live transcript while you speak.</string>
 </dict></plist>
 PLIST
 codesign --force --deep --sign - --requirements '=designated => identifier "app.chatterkey.macos"' "$APP"

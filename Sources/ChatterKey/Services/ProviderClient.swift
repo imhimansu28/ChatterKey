@@ -4,10 +4,15 @@ nonisolated struct ProviderClient: Sendable {
     let settings: ProviderSettings
     let apiKey: String
 
-    func process(audioURL: URL) async throws -> String {
+    func process(audioURL: URL, editing selectedText: String? = nil) async throws -> String {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
-        let audio = try Data(contentsOf: audioURL)
 
+        if let selectedText, !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let instruction = try await transcribe(audioURL: audioURL)
+            return try await edit(selectedText, instruction: instruction)
+        }
+
+        let audio = try Data(contentsOf: audioURL)
         let output: String
         if settings.provider == .openRouter,
            settings.fastSinglePass,
@@ -36,6 +41,10 @@ nonisolated struct ProviderClient: Sendable {
 
     func polish(_ transcript: String) async throws -> String {
         guard settings.smartPolish, !settings.polishModel.isEmpty else { return transcript }
+        return try await complete(system: processingPrompt, user: transcript)
+    }
+
+    private func complete(system: String, user: String) async throws -> String {
         guard let baseURL = URL(string: settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             throw ProviderError.invalidBaseURL
         }
@@ -49,13 +58,11 @@ nonisolated struct ProviderClient: Sendable {
             request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
         }
 
-        let system = processingPrompt
-
         let body = ChatRequest(
             model: settings.polishModel,
             messages: [
                 .init(role: "system", content: system),
-                .init(role: "user", content: transcript)
+                .init(role: "user", content: user)
             ],
             temperature: 0.1
         )
@@ -63,8 +70,38 @@ nonisolated struct ProviderClient: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-        let output = decoded.choices.first?.message.content ?? transcript
+        guard let output = decoded.choices.first?.message.content, !output.isEmpty else {
+            throw ProviderError.invalidResponse
+        }
         return sanitize(output)
+    }
+
+    func edit(_ selectedText: String, instruction: String) async throws -> String {
+        guard !settings.polishModel.isEmpty else { throw ProviderError.invalidResponse }
+        let dictionary = settings.personalDictionary
+            .filter { !$0.spoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { "- \($0.spoken) → \($0.replacement)" }
+            .joined(separator: "\n")
+        let vocabulary = dictionary.isEmpty ? "" : """
+
+        Preferred vocabulary and exact spellings:
+        \(dictionary)
+        """
+        let system = """
+        You edit selected text according to a spoken instruction.
+        Preserve the original meaning unless the instruction explicitly requests a change.
+        Never add unsupported facts. Preserve names, code, URLs, filenames, and technical terms.
+        Return only the replacement text, without quotes, labels, explanations, or code fences.
+        \(vocabulary)
+        """
+        let user = """
+        SELECTED TEXT:
+        \(selectedText)
+
+        SPOKEN INSTRUCTION:
+        \(instruction)
+        """
+        return try await complete(system: system, user: user)
     }
 
     func testConnection() async throws {

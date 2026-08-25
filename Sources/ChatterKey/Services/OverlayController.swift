@@ -9,7 +9,7 @@ final class OverlayController {
     func show(appState: AppState) {
         if panel == nil {
             let panel = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 86, height: 54),
+                contentRect: NSRect(x: 0, y: 0, width: 380, height: 64),
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false

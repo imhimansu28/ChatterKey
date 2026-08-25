@@ -8,12 +8,15 @@ final class AppState: ObservableObject {
 
     @Published var phase: DictationPhase = .idle
     @Published var lastTranscript = ""
+    @Published var liveTranscript = ""
+    @Published var magicEditActive = false
     @Published var settings: ProviderSettings
     @Published var history: [DictationHistoryItem]
     @Published var diagnostics: [DiagnosticItem] = []
     @Published var diagnosticsRunning = false
     @Published var accessibilityGranted = false
     @Published var microphoneGranted = false
+    @Published var speechRecognitionGranted = false
     @Published var hotkeyReady = false
     @Published var onboardingComplete: Bool
 
@@ -21,6 +24,7 @@ final class AppState: ObservableObject {
     let hotkey = GlobalHotkey()
     private var processingTask: Task<Void, Never>?
     private var retryAudioURL: URL?
+    private var selectedTextForEdit: String?
     private var apiKeyCache: [AIProvider: String] = [:]
     private var loadedAPIKeyProviders: Set<AIProvider> = []
 
@@ -58,11 +62,15 @@ final class AppState: ObservableObject {
         recorder.cleanupTemporaryFiles()
         hotkey.configure(settings.hotkeyShortcut)
         refreshPermissions()
+        if settings.liveTranscriptionEnabled && !speechRecognitionGranted {
+            requestSpeechRecognitionPermission()
+        }
     }
 
     func refreshPermissions() {
         accessibilityGranted = hotkey.isAccessibilityGranted
         microphoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        speechRecognitionGranted = recorder.speechRecognitionGranted
         hotkeyReady = hotkey.start()
     }
 
@@ -70,11 +78,21 @@ final class AppState: ObservableObject {
         hotkey.requestAccessibility()
         Task {
             _ = await recorder.requestPermission()
+            if settings.liveTranscriptionEnabled {
+                _ = await recorder.requestSpeechRecognitionPermission()
+            }
             for _ in 0..<30 {
                 refreshPermissions()
                 if accessibilityGranted && microphoneGranted { break }
                 try? await Task.sleep(for: .seconds(1))
             }
+        }
+    }
+
+    func requestSpeechRecognitionPermission() {
+        Task {
+            _ = await recorder.requestSpeechRecognitionPermission()
+            refreshPermissions()
         }
     }
 
@@ -124,8 +142,14 @@ final class AppState: ObservableObject {
 
         processingTask?.cancel()
         removeRetryAudio()
+        liveTranscript = ""
+        selectedTextForEdit = TextSelectionReader.selectedText()
+        magicEditActive = selectedTextForEdit != nil
         do {
-            try recorder.start()
+            try recorder.start(liveTranscription: settings.liveTranscriptionEnabled) { [weak self] text in
+                guard let self, self.phase == .listening else { return }
+                self.liveTranscript = text
+            }
             phase = .listening
             OverlayController.shared.show(appState: self)
         } catch {
@@ -149,6 +173,9 @@ final class AppState: ObservableObject {
         recorder.cancel()
         removeRetryAudio()
         phase = .idle
+        liveTranscript = ""
+        magicEditActive = false
+        selectedTextForEdit = nil
         OverlayController.shared.hide()
     }
 
@@ -214,6 +241,9 @@ final class AppState: ObservableObject {
             clearHistory()
         }
         refreshPermissions()
+        if newValue.liveTranscriptionEnabled && !speechRecognitionGranted {
+            requestSpeechRecognitionPermission()
+        }
     }
 
     private func processAudio(at url: URL) {
@@ -221,10 +251,14 @@ final class AppState: ObservableObject {
         OverlayController.shared.show(appState: self)
         let currentSettings = settings
         let key = apiKey(for: currentSettings.provider)
+        let editingText = selectedTextForEdit
 
         processingTask = Task {
             do {
-                let final = try await ProviderClient(settings: currentSettings, apiKey: key).process(audioURL: url)
+                let final = try await ProviderClient(settings: currentSettings, apiKey: key).process(
+                    audioURL: url,
+                    editing: editingText
+                )
                 try Task.checkCancellation()
                 lastTranscript = final
                 do {
@@ -242,6 +276,9 @@ final class AppState: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(900))
                 if phase == .inserted {
                     phase = .idle
+                    liveTranscript = ""
+                    magicEditActive = false
+                    selectedTextForEdit = nil
                     OverlayController.shared.hide()
                 }
             } catch is CancellationError {
@@ -292,7 +329,14 @@ final class AppState: ObservableObject {
                 state: hasAPIKey ? .passed : .failed,
                 detail: hasAPIKey ? "Stored in Keychain" : "Missing"
             )
-        ]
+        ] + (settings.liveTranscriptionEnabled ? [
+            DiagnosticItem(
+                id: "speech",
+                title: "Live transcription preview",
+                state: speechRecognitionGranted ? .passed : .failed,
+                detail: speechRecognitionGranted ? "On-device preview allowed" : "Speech Recognition permission required"
+            )
+        ] : [])
     }
 
     private func fail(_ message: String) {
