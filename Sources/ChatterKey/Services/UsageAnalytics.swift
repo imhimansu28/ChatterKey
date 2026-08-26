@@ -13,7 +13,7 @@ nonisolated enum UsageAnalytics {
     ) -> Double {
         let minutes = max(durationSeconds, 0) / 60
         let transcriptionCost = minutes * settings.costRates.transcriptionPerMinute
-        guard settings.smartPolish, !settings.polishModel.isEmpty else { return transcriptionCost }
+        guard settings.requiresLanguageModelProcessing, !settings.polishModel.isEmpty else { return transcriptionCost }
         let promptTokens = Double(wordCount(spokenText) + wordCount(ProviderClient(settings: settings, apiKey: "").effectiveProcessingPrompt)) * 1.35
         let outputTokens = Double(wordCount(finalText)) * 1.35
         return transcriptionCost

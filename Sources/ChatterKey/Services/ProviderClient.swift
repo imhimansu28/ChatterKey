@@ -34,7 +34,7 @@ nonisolated struct ProviderClient: Sendable {
         let output: String
         if settings.provider == .openRouter,
            settings.fastSinglePass,
-           settings.smartPolish {
+           settings.requiresLanguageModelProcessing {
             do {
                 output = try await processOpenRouterSinglePass(audio: audio)
             } catch where shouldFallBackToTranscription(after: error) {
@@ -45,14 +45,13 @@ nonisolated struct ProviderClient: Sendable {
             let raw = try await transcribe(audioURL: audioURL)
             output = try await polish(raw)
         }
-        return VoiceTextProcessor.process(output, settings: settings)
+        let compliantOutput = try await enforceOutputMode(on: output)
+        return VoiceTextProcessor.process(compliantOutput, settings: settings)
     }
 
     func transcribe(audioURL: URL) async throws -> String {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
-        guard let baseURL = URL(string: settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            throw ProviderError.invalidBaseURL
-        }
+        let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
         let endpoint = baseURL.appendingPathComponent("audio/transcriptions")
         let audio = try Data(contentsOf: audioURL)
 
@@ -63,14 +62,13 @@ nonisolated struct ProviderClient: Sendable {
     }
 
     func polish(_ transcript: String) async throws -> String {
-        guard settings.smartPolish, !settings.polishModel.isEmpty else { return transcript }
+        guard settings.requiresLanguageModelProcessing else { return transcript }
+        guard !settings.polishModel.isEmpty else { throw ProviderError.missingProcessingModel }
         return try await complete(system: effectiveProcessingPrompt, user: transcript)
     }
 
     private func complete(system: String, user: String) async throws -> String {
-        guard let baseURL = URL(string: settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            throw ProviderError.invalidBaseURL
-        }
+        let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
         let endpoint = baseURL.appendingPathComponent("chat/completions")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -129,7 +127,7 @@ nonisolated struct ProviderClient: Sendable {
 
     func testConnection() async throws {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
-        guard let baseURL = URL(string: settings.baseURL) else { throw ProviderError.invalidBaseURL }
+        let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
         var request = URLRequest(url: baseURL.appendingPathComponent("models"))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 12
@@ -138,9 +136,8 @@ nonisolated struct ProviderClient: Sendable {
     }
 
     private func processOpenRouterSinglePass(audio: Data) async throws -> String {
-        guard let baseURL = URL(string: settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            throw ProviderError.invalidBaseURL
-        }
+        guard !settings.polishModel.isEmpty else { throw ProviderError.missingProcessingModel }
+        let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
         let endpoint = baseURL.appendingPathComponent("chat/completions")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -199,7 +196,7 @@ nonisolated struct ProviderClient: Sendable {
         body.appendFormField(name: "model", value: settings.transcriptionModel, boundary: boundary)
         body.appendFormField(
             name: "prompt",
-            value: "Natural Indian Hinglish. Preserve Hindi-English code switching, names, product names and technical terms.",
+            value: "Create a faithful raw transcript of natural Indian Hindi-English code-switching. Preserve names, brands, code, and technical terms; do not translate at this stage.",
             boundary: boundary
         )
         body.appendFile(name: "file", filename: "dictation.wav", mimeType: "audio/wav", data: audio, boundary: boundary)
@@ -237,19 +234,36 @@ nonisolated struct ProviderClient: Sendable {
         """ : ""
         let customInstructions = settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let baseInstructions = customInstructions.isEmpty ? ProviderSettings.defaultSystemPrompt : customInstructions
+        let cleanup = settings.smartPolish ? "Remove filler words, repetition, and abandoned phrases unless Verbatim mode requires them." : "Preserve the speaker's wording and detail except where the active writing mode requires translation or formatting."
         return """
         \(baseInstructions)
 
-        Active writing mode:
+        Mandatory active writing mode (this overrides conflicting custom instructions):
         \(settings.outputMode.instruction)
         Preserve the exact intent, names, code, URLs, filenames, and technical terms.
-        Remove filler words, repetition, and abandoned phrases unless Verbatim mode requires them.
+        \(cleanup)
         Respect the speaker's final self-correction. Never add facts or new ideas.
         Return plain text only. Never use code fences, surrounding quotes, labels, or a preface.
         \(vocabulary)
         \(snippets)
         \(commands)
         """
+    }
+
+    private func enforceOutputMode(on output: String) async throws -> String {
+        guard settings.outputMode == .translateEnglish,
+              TranslationCompliance.containsUntranslatedHindi(output) else {
+            return output
+        }
+
+        let repairPrompt = """
+        The draft below violates the mandatory English-only output mode.
+        Rewrite the complete draft as fluent, natural English.
+        Translate every Hindi or Hinglish fragment, including isolated conversational words.
+        Preserve meaning, proper names, brands, quoted text, code, URLs, and filenames.
+        Return only the corrected English text with no explanation, labels, or code fences.
+        """
+        return try await complete(system: repairPrompt, user: output)
     }
 
     private func requestData(
@@ -264,7 +278,11 @@ nonisolated struct ProviderClient: Sendable {
             configuration.waitsForConnectivity = false
             configuration.timeoutIntervalForRequest = request.timeoutInterval
             configuration.timeoutIntervalForResource = request.timeoutInterval
-            let session = URLSession(configuration: configuration)
+            let session = URLSession(
+                configuration: configuration,
+                delegate: RejectRedirectsDelegate(),
+                delegateQueue: nil
+            )
 
             do {
                 let result = try await session.data(for: request)
@@ -401,6 +419,7 @@ private nonisolated struct APIErrorEnvelope: Decodable {
 
 nonisolated enum ProviderError: LocalizedError {
     case missingAPIKey
+    case missingProcessingModel
     case invalidBaseURL
     case invalidResponse
     case timedOut
@@ -409,11 +428,24 @@ nonisolated enum ProviderError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey: "Settings mein provider API key add karein."
+        case .missingProcessingModel: "Choose a text processing model for this output mode."
         case .invalidBaseURL: "The provider base URL is invalid."
         case .invalidResponse: "The provider returned an invalid response."
         case .timedOut: "Processing took too long. Please retry."
         case .api(let message): message
         }
+    }
+}
+
+private final class RejectRedirectsDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
     }
 }
 

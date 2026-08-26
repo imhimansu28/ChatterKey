@@ -94,7 +94,7 @@ nonisolated enum OutputMode: String, CaseIterable, Codable, Identifiable, Sendab
         case .cleanSameLanguage:
             "Keep the speaker's original language and natural code-switching. Clean grammar and punctuation without translating."
         case .translateEnglish:
-            "Translate all Hindi, Hinglish, or other non-English speech into fluent natural English. Never return Devanagari or Roman Hindi."
+            "Convert every Hindi, Hinglish, or other non-English fragment—including isolated conversational words—into fluent, idiomatic English. Keep and correct already-English content. Output English only; never retain Devanagari or Romanized Hindi except proper names, brands, quoted text, code, URLs, and filenames."
         case .professional:
             "Return polished professional English suitable for email or workplace communication. Preserve intent without sounding robotic."
         case .casual:
@@ -214,6 +214,10 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     Preserve the speaker's meaning while making the result clear, natural, and ready to use.
     Follow the selected writing mode without adding unsupported facts or ideas.
     """
+
+    var requiresLanguageModelProcessing: Bool {
+        smartPolish || outputMode != .verbatim
+    }
 
     static let starterVocabulary = [
         DictionaryEntry(spoken: "chat gpt", replacement: "ChatGPT"),

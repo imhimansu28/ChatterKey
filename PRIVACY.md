@@ -14,7 +14,7 @@ ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey 
 
 When cloud processing is used, recorded audio and processing instructions—including the selected writing mode, custom system prompt, and relevant vocabulary—are sent directly from the Mac to the provider selected by the user, such as OpenAI or OpenRouter. When Magic Voice Edit is active, the selected text is also sent to that provider so it can create the requested replacement. The resulting transcript is returned directly to the app. Provider privacy, retention, regional processing, and training policies apply independently; users should review them before use.
 
-Custom provider URLs receive the same request data. Only configure providers you trust.
+Custom provider URLs receive the same request data. Only configure providers you trust. Custom cloud endpoints must use HTTPS; local development endpoints may use HTTP only on localhost. OpenAI and OpenRouter requests use fixed official API hosts.
 
 ## Temporary audio
 

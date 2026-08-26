@@ -9,6 +9,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Redesigned the README as a visual product guide with a generated hero, animated workflow demo, feature comparison, quick-start guide, transparency table, and compact developer sections.
+- Strengthened Translate to English instructions so mixed Hindi-English fragments are converted consistently while names, brands, code, URLs, and filenames stay intact.
+- Kept first-party provider base URLs fixed in Settings; custom endpoints remain configurable.
+
+### Fixed
+
+- Translate to English and other writing modes now continue using the text-processing model even when optional smart cleanup is disabled.
+- Added a targeted English-only compliance repair when a provider leaves clear Devanagari or Romanized Hindi in translated output.
+- Cost estimates now include text processing whenever the selected writing mode requires it.
+
+### Security
+
+- Pinned OpenAI and OpenRouter requests to their official API hosts, require HTTPS for remote custom providers, allow HTTP only on localhost, and reject provider redirects.
 
 ## [0.4.0] - 2026-08-25
 

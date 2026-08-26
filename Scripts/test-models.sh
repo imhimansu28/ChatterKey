@@ -54,9 +54,48 @@ struct ModelHarness {
             precondition(!mode.title.isEmpty)
             precondition(mode.instruction.count > 20)
         }
-        print("v0.3 model tests passed")
+
+        var translateWithoutCleanup = ProviderSettings()
+        translateWithoutCleanup.outputMode = .translateEnglish
+        translateWithoutCleanup.smartPolish = false
+        precondition(translateWithoutCleanup.requiresLanguageModelProcessing)
+
+        var literalWithoutCleanup = ProviderSettings()
+        literalWithoutCleanup.outputMode = .verbatim
+        literalWithoutCleanup.smartPolish = false
+        precondition(!literalWithoutCleanup.requiresLanguageModelProcessing)
+
+        precondition(TranslationCompliance.containsUntranslatedHindi("Mujhe this report tomorrow chahiye."))
+        precondition(TranslationCompliance.containsUntranslatedHindi("The report is ready hai."))
+        precondition(TranslationCompliance.containsUntranslatedHindi("यह report tomorrow चाहिए."))
+        precondition(!TranslationCompliance.containsUntranslatedHindi("The MATLAB report is ready."))
+        precondition(!TranslationCompliance.containsUntranslatedHindi("The report is ready for review."))
+
+        var openAI = ProviderSettings()
+        openAI.provider = .openAI
+        openAI.baseURL = "https://attacker.example/v1"
+        let pinnedOpenAIURL = try ProviderEndpointPolicy.baseURL(for: openAI)
+        precondition(pinnedOpenAIURL.host == "api.openai.com")
+
+        var custom = ProviderSettings()
+        custom.provider = .custom
+        custom.baseURL = "https://trusted.example/v1/"
+        let secureCustomURL = try ProviderEndpointPolicy.baseURL(for: custom)
+        precondition(secureCustomURL.absoluteString == "https://trusted.example/v1")
+        custom.baseURL = "http://localhost:8080/v1"
+        let localCustomURL = try ProviderEndpointPolicy.baseURL(for: custom)
+        precondition(localCustomURL.host == "localhost")
+        custom.baseURL = "http://provider.example/v1"
+        do {
+            _ = try ProviderEndpointPolicy.baseURL(for: custom)
+            preconditionFailure("Remote HTTP provider should be rejected")
+        } catch ProviderEndpointError.insecureURL {
+            // Expected.
+        }
+
+        print("model and endpoint safety tests passed")
     }
 }
 SWIFT
-swiftc Sources/ChatterKey/Models.swift Sources/ChatterKey/Services/VoiceTextProcessor.swift "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
+swiftc Sources/ChatterKey/Models.swift Sources/ChatterKey/Services/VoiceTextProcessor.swift Sources/ChatterKey/Services/ProviderEndpointPolicy.swift Sources/ChatterKey/Services/TranslationCompliance.swift "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
 "$TMP/model-tests"

@@ -325,7 +325,16 @@ struct SettingsView: View {
                     }
                 }
                 cardDivider
-                fieldRow("Base URL", placeholder: "https://api.example.com/v1", text: $draft.baseURL)
+                if draft.provider == .custom {
+                    fieldRow("Base URL", placeholder: "https://api.example.com/v1", text: $draft.baseURL)
+                } else {
+                    settingRow("Base URL", detail: "Fixed to protect your provider API key") {
+                        Text(draft.provider.defaultBaseURL)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                }
                 cardDivider
                 secureFieldRow("API key", placeholder: "Stored securely in macOS Keychain", text: $apiKey)
             }
@@ -761,6 +770,9 @@ struct SettingsView: View {
         do {
             if draft.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 draft.systemPrompt = ProviderSettings.defaultSystemPrompt
+            }
+            if draft.provider != .custom {
+                draft.baseURL = draft.provider.defaultBaseURL
             }
             draft.personalDictionary = draft.personalDictionary.filter {
                 !$0.spoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

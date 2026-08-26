@@ -96,7 +96,11 @@ struct OnboardingView: View {
                     draft.polishModel = provider.defaultPolishModel
                     apiKey = appState.apiKey(for: provider)
                 }
-                TextField("Base URL", text: $draft.baseURL)
+                if draft.provider == .custom {
+                    TextField("Base URL", text: $draft.baseURL)
+                } else {
+                    LabeledContent("Base URL", value: draft.provider.defaultBaseURL)
+                }
                 SecureField("API key", text: $apiKey)
                 Picker("Default output", selection: $draft.outputMode) {
                     ForEach(OutputMode.allCases) { Text($0.title).tag($0) }
