@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated enum VoiceTextProcessor {
     static func process(_ text: String, settings: ProviderSettings) -> String {
+        guard settings.outputMode != .verbatim else { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
         var output = text
         if settings.spokenCommandsEnabled {
             output = applyCommands(to: output)

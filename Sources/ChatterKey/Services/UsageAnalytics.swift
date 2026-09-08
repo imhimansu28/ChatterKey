@@ -9,14 +9,15 @@ nonisolated enum UsageAnalytics {
         durationSeconds: Double,
         spokenText: String,
         finalText: String,
-        settings: ProviderSettings
+        settings: ProviderSettings,
+        selectedText: String? = nil
     ) -> Double {
-        let minutes = max(durationSeconds, 0) / 60
-        let transcriptionCost = minutes * settings.costRates.transcriptionPerMinute
-        guard settings.requiresLanguageModelProcessing, !settings.polishModel.isEmpty else { return transcriptionCost }
-        let promptTokens = Double(wordCount(spokenText) + wordCount(ProviderClient(settings: settings, apiKey: "").effectiveProcessingPrompt)) * 1.35
+        let audioTokens = max(durationSeconds, 0) * 32
+        let prompt = ProviderClient(settings: settings, apiKey: "").processingPrompt(editing: selectedText)
+        let promptTokens = Double(wordCount(prompt) + wordCount(selectedText ?? "")) * 1.35
         let outputTokens = Double(wordCount(finalText)) * 1.35
-        return transcriptionCost
+        // The rough live transcript is not sent to the model and must not be billed again.
+        return audioTokens / 1_000_000 * settings.costRates.audioPerMillionTokens
             + promptTokens / 1_000_000 * settings.costRates.inputPerMillionTokens
             + outputTokens / 1_000_000 * settings.costRates.outputPerMillionTokens
     }

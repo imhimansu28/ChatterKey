@@ -83,24 +83,13 @@ struct OnboardingView: View {
 
     private var providerSetup: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Connect your provider").font(.title2.bold())
-            Text("Your API key is stored in macOS Keychain and is sent only to the provider you choose.")
+            Text("Connect Gemini through OpenRouter").font(.title2.bold())
+            Text("Use an OpenRouter API key. One audio model handles every writing mode and voice edit. Your key stays in macOS Keychain.")
                 .foregroundStyle(.secondary)
             Form {
-                Picker("Provider", selection: $draft.provider) {
-                    ForEach(AIProvider.allCases) { Text($0.title).tag($0) }
-                }
-                .onChange(of: draft.provider) { _, provider in
-                    draft.baseURL = provider.defaultBaseURL
-                    draft.transcriptionModel = provider.defaultTranscriptionModel
-                    draft.polishModel = provider.defaultPolishModel
-                    apiKey = appState.apiKey(for: provider)
-                }
-                if draft.provider == .custom {
-                    TextField("Base URL", text: $draft.baseURL)
-                } else {
-                    LabeledContent("Base URL", value: draft.provider.defaultBaseURL)
-                }
+                LabeledContent("Provider", value: "OpenRouter")
+                LabeledContent("Model", value: "Gemini 3.5 Flash-Lite")
+                LabeledContent("Base URL", value: AIProvider.openRouter.defaultBaseURL)
                 SecureField("API key", text: $apiKey)
                 Picker("Default output", selection: $draft.outputMode) {
                     ForEach(OutputMode.allCases) { Text($0.title).tag($0) }

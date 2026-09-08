@@ -8,7 +8,7 @@ import Foundation
 
 @main
 struct ModelHarness {
-    static func main() throws {
+    static func main() async throws {
         let defaults = ProviderSettings()
         precondition(defaults.personalDictionary.contains { $0.replacement == "ChatGPT" })
         precondition(defaults.voiceSnippets.contains { $0.cue == "insert quick thanks" })
@@ -55,22 +55,6 @@ struct ModelHarness {
             precondition(mode.instruction.count > 20)
         }
 
-        var translateWithoutCleanup = ProviderSettings()
-        translateWithoutCleanup.outputMode = .translateEnglish
-        translateWithoutCleanup.smartPolish = false
-        precondition(translateWithoutCleanup.requiresLanguageModelProcessing)
-
-        var literalWithoutCleanup = ProviderSettings()
-        literalWithoutCleanup.outputMode = .verbatim
-        literalWithoutCleanup.smartPolish = false
-        precondition(!literalWithoutCleanup.requiresLanguageModelProcessing)
-
-        precondition(TranslationCompliance.containsUntranslatedHindi("Mujhe this report tomorrow chahiye."))
-        precondition(TranslationCompliance.containsUntranslatedHindi("The report is ready hai."))
-        precondition(TranslationCompliance.containsUntranslatedHindi("यह report tomorrow चाहिए."))
-        precondition(!TranslationCompliance.containsUntranslatedHindi("The MATLAB report is ready."))
-        precondition(!TranslationCompliance.containsUntranslatedHindi("The report is ready for review."))
-
         var openAI = ProviderSettings()
         openAI.provider = .openAI
         openAI.baseURL = "https://attacker.example/v1"
@@ -93,9 +77,201 @@ struct ModelHarness {
             // Expected.
         }
 
-        print("model and endpoint safety tests passed")
+        precondition(defaults.provider == .openRouter)
+        precondition(defaults.model == "google/gemini-3.5-flash-lite")
+        precondition(migrated.provider == .openRouter)
+        precondition(migrated.model == defaults.model)
+        precondition(decoded.model == defaults.model)
+        let encodedSettings = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        precondition(encodedSettings["transcriptionModel"] == nil)
+        precondition(encodedSettings["polishModel"] == nil)
+        precondition(encodedSettings["fastSinglePass"] == nil)
+
+        let oldRouter = Data(#"{"provider":"openRouter","polishModel":"google/gemini-3.8-flash","transcriptionModel":"openai/whisper-large-v3","fastSinglePass":false,"costRates":{"transcriptionPerMinute":0.003,"inputPerMillionTokens":0.1,"outputPerMillionTokens":0.4}}"#.utf8)
+        let migratedRouter = try JSONDecoder().decode(ProviderSettings.self, from: oldRouter)
+        precondition(migratedRouter.model == "google/gemini-3.8-flash")
+        precondition(migratedRouter.costRates.audioPerMillionTokens == 0.75)
+        let oldTextModel = Data(#"{"provider":"openRouter","polishModel":"openai/gpt-oss-120b"}"#.utf8)
+        let migratedTextModel = try JSONDecoder().decode(ProviderSettings.self, from: oldTextModel)
+        precondition(migratedTextModel.model == defaults.model)
+        let oldCustom = Data(#"{"provider":"custom","baseURL":"https://custom.example","polishModel":"google/gemini-3.5-flash-lite"}"#.utf8)
+        let migratedCustom = try JSONDecoder().decode(ProviderSettings.self, from: oldCustom)
+        precondition(migratedCustom.provider == .openRouter)
+        precondition(migratedCustom.baseURL == AIProvider.openRouter.defaultBaseURL)
+
+        var future = defaults
+        future.model = "google/gemini-future-audio"
+        future.costRates = CostRates(audioPerMillionTokens: 1, inputPerMillionTokens: 2, outputPerMillionTokens: 3)
+        let futureRoundTrip = try JSONDecoder().decode(ProviderSettings.self, from: JSONEncoder().encode(future))
+        precondition(futureRoundTrip.model == future.model)
+        precondition(futureRoundTrip.costRates.audioPerMillionTokens == 1)
+
+        let oldUsage = Data(#"{"id":"12345678-1234-1234-1234-123456789012","createdAt":0,"provider":"openAI","transcriptionModel":"gpt-4o-mini-transcribe","polishModel":"gpt-4.1-mini","wordCount":12,"audioDurationSeconds":5,"estimatedCostUSD":0.1,"suggestions":[]}"#.utf8)
+        let migratedUsage = try JSONDecoder().decode(UsageRecord.self, from: oldUsage)
+        precondition(migratedUsage.model == "gpt-4.1-mini")
+        precondition(migratedUsage.estimatedCostUSD == 0.1)
+        let usageData = try JSONEncoder().encode(migratedUsage)
+        let usageJSON = try JSONSerialization.jsonObject(with: usageData) as! [String: Any]
+        precondition(usageJSON["model"] as? String == "gpt-4.1-mini")
+        precondition(usageJSON["polishModel"] == nil)
+        _ = try JSONDecoder().decode(UsageRecord.self, from: usageData)
+
+        let audio = Data("mock WAV bytes".utf8)
+        let audioURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
+        try audio.write(to: audioURL)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+
+        // Every writing mode, with and without cleanup, must send exactly one audio request.
+        for mode in OutputMode.allCases {
+            for cleanup in [true, false] {
+                var config = defaults
+                config.outputMode = mode
+                config.smartPolish = cleanup
+                config.baseURL = "https://attacker.example/v1"
+                let mock = MockTransport(body: reply("Final text"))
+                let client = ProviderClient(settings: config, apiKey: "test-credential", transport: { try await mock.send($0) })
+                let output = try await client.process(audioURL: audioURL)
+                precondition(output == "Final text")
+                let requests = await mock.requests
+                precondition(requests.count == 1)
+                let request = requests[0]
+                precondition(request.url?.absoluteString == "https://openrouter.ai/api/v1/chat/completions")
+                precondition(request.httpMethod == "POST")
+                let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+                precondition(body["model"] as? String == defaults.model)
+                precondition(body["temperature"] == nil)
+                precondition((body["max_tokens"] as? Int ?? 0) > 700)
+                precondition((body["provider"] as? [String: Any])?["allow_fallbacks"] as? Bool == false)
+                let messages = body["messages"] as! [[String: Any]]
+                precondition(messages.count == 2)
+                precondition(messages[0]["role"] as? String == "system")
+                let prompt = (messages[0]["content"] as! [[String: Any]])[0]["text"] as! String
+                precondition(prompt.contains(mode.instruction))
+                precondition(prompt.contains("chat gpt"))
+                let content = messages[1]["content"] as! [[String: Any]]
+                precondition(content.count == 1)
+                precondition(content[0]["type"] as? String == "input_audio")
+                let input = content[0]["input_audio"] as! [String: Any]
+                precondition(input["data"] as? String == audio.base64EncodedString())
+                precondition(input["format"] as? String == "wav")
+            }
+        }
+
+        let selected = "Original document with a URL and code."
+        let editMock = MockTransport(body: reply("new line insert quick thanks"))
+        let editor = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await editMock.send($0) })
+        let edited = try await editor.process(audioURL: audioURL, editing: selected)
+        precondition(edited == "new line insert quick thanks") // No local snippet/command expansion in edits.
+        let editRequests = await editMock.requests
+        precondition(editRequests.count == 1)
+        let editBody = try JSONSerialization.jsonObject(with: editRequests[0].httpBody!) as! [String: Any]
+        let editMessages = editBody["messages"] as! [[String: Any]]
+        let editContent = editMessages[1]["content"] as! [[String: Any]]
+        precondition(editContent.count == 2)
+        precondition((editContent[0]["text"] as? String)?.contains(selected) == true)
+        precondition(editContent[1]["type"] as? String == "input_audio")
+        precondition(editor.processingPrompt(editing: selected).contains("spoken instruction"))
+        precondition(!editor.processingPrompt(editing: selected).contains(defaults.outputMode.instruction))
+        precondition(editor.processingPrompt(editing: "  ") == editor.effectiveProcessingPrompt)
+
+        var verbatim = defaults
+        verbatim.outputMode = .verbatim
+        precondition(VoiceTextProcessor.process("new line insert quick thanks", settings: verbatim) == "new line insert quick thanks")
+
+        // Imperfect English must never trigger a hidden repair request.
+        let hindiMock = MockTransport(body: reply("यह report ready hai."))
+        let hindiClient = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await hindiMock.send($0) })
+        _ = try await hindiClient.process(audioURL: audioURL)
+        let hindiCount = await hindiMock.requests.count
+        precondition(hindiCount == 1)
+
+        // Provider/network failures, blocked and truncated results never retry or fall back.
+        for mock in [
+            MockTransport(body: Data(#"{"error":{"message":"Unavailable"}}"#.utf8), status: 503),
+            MockTransport(body: Data(), errorCode: .timedOut),
+            MockTransport(body: Data(), errorCode: .networkConnectionLost),
+            MockTransport(body: Data("malformed".utf8)),
+            MockTransport(body: reply("   ")),
+            MockTransport(body: reply("partial text", finishReason: "length")),
+            MockTransport(body: reply("blocked", finishReason: "content_filter")),
+            MockTransport(body: Data(#"{"choices":[{"message":{"content":null}}]}"#.utf8))
+        ] {
+            let client = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await mock.send($0) })
+            do {
+                _ = try await client.process(audioURL: audioURL)
+                preconditionFailure("Invalid response should not be inserted")
+            } catch { }
+            let count = await mock.requests.count
+            precondition(count == 1)
+        }
+
+        let cancelledMock = MockTransport(body: reply("Must not insert"), cancel: true)
+        let cancelledClient = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await cancelledMock.send($0) })
+        do {
+            _ = try await cancelledClient.process(audioURL: audioURL)
+            preconditionFailure("Cancellation should propagate")
+        } catch is CancellationError { }
+        let cancelledCount = await cancelledMock.requests.count
+        precondition(cancelledCount == 1)
+
+        for invalid in [openAI, custom] {
+            do {
+                _ = try ProviderClient(settings: invalid, apiKey: "test-credential").makeAudioRequest(audio: audio)
+                preconditionFailure("Legacy provider credentials must not be sent")
+            } catch ProviderError.unsupportedProvider { }
+        }
+        var emptyModel = defaults
+        emptyModel.model = "  "
+        do {
+            _ = try ProviderClient(settings: emptyModel, apiKey: "test-credential").makeAudioRequest(audio: audio)
+            preconditionFailure("Empty model must be rejected")
+        } catch ProviderError.missingProcessingModel { }
+        do {
+            _ = try ProviderClient(settings: defaults, apiKey: "").makeAudioRequest(audio: audio)
+            preconditionFailure("Empty API key must be rejected")
+        } catch ProviderError.missingAPIKey { }
+
+        let cost = UsageAnalytics.estimatedCost(durationSeconds: 60, spokenText: "ignored live preview", finalText: "Hello world", settings: defaults)
+        let promptTokens = Double(UsageAnalytics.wordCount(editor.effectiveProcessingPrompt)) * 1.35
+        let expected = (1920 * 0.30 + promptTokens * 0.30 + 2 * 1.35 * 2.50) / 1_000_000
+        precondition(abs(cost - expected) < 0.000000001)
+        let differentPreviewCost = UsageAnalytics.estimatedCost(durationSeconds: 60, spokenText: "", finalText: "Hello world", settings: defaults)
+        precondition(cost == differentPreviewCost)
+        let shortEditCost = UsageAnalytics.estimatedCost(durationSeconds: 0, spokenText: "", finalText: "", settings: defaults, selectedText: "One word")
+        let longEditCost = UsageAnalytics.estimatedCost(durationSeconds: 0, spokenText: "", finalText: "", settings: defaults, selectedText: String(repeating: "word ", count: 1000))
+        precondition(longEditCost > shortEditCost)
+        let verbatimCost = UsageAnalytics.estimatedCost(durationSeconds: 60, spokenText: "", finalText: "Hello world", settings: verbatim)
+        precondition(verbatimCost > 1920 * 0.30 / 1_000_000)
+
+        print("model migration, single-request processing, error handling, cost and endpoint safety tests passed")
+    }
+}
+
+func reply(_ text: String, finishReason: String = "stop") -> Data {
+    try! JSONSerialization.data(withJSONObject: ["choices": [["message": ["content": text], "finish_reason": finishReason]]])
+}
+
+actor MockTransport {
+    private(set) var requests: [URLRequest] = []
+    let body: Data
+    let status: Int
+    let errorCode: URLError.Code?
+    let cancel: Bool
+
+    init(body: Data, status: Int = 200, errorCode: URLError.Code? = nil, cancel: Bool = false) {
+        self.body = body
+        self.status = status
+        self.errorCode = errorCode
+        self.cancel = cancel
+    }
+
+    func send(_ request: URLRequest) throws -> (Data, URLResponse) {
+        requests.append(request)
+        if cancel { throw CancellationError() }
+        if let errorCode { throw URLError(errorCode) }
+        return (body, HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
     }
 }
 SWIFT
-swiftc Sources/ChatterKey/Models.swift Sources/ChatterKey/Services/VoiceTextProcessor.swift Sources/ChatterKey/Services/ProviderEndpointPolicy.swift Sources/ChatterKey/Services/TranslationCompliance.swift "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
+swiftc -swift-version 6 Sources/ChatterKey/Models.swift Sources/ChatterKey/Services/VoiceTextProcessor.swift Sources/ChatterKey/Services/ProviderEndpointPolicy.swift Sources/ChatterKey/Services/ProviderClient.swift Sources/ChatterKey/Services/UsageAnalytics.swift "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
 "$TMP/model-tests"

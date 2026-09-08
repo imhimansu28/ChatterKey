@@ -22,33 +22,6 @@ nonisolated enum AIProvider: String, CaseIterable, Codable, Identifiable, Sendab
         case .custom: ""
         }
     }
-
-    var defaultTranscriptionModel: String {
-        switch self {
-        case .openAI: "gpt-4o-mini-transcribe"
-        case .openRouter: "openai/whisper-large-v3"
-        case .custom: ""
-        }
-    }
-
-    var defaultPolishModel: String {
-        switch self {
-        case .openAI: "gpt-4.1-mini"
-        case .openRouter: "google/gemini-3.5-flash-lite"
-        case .custom: ""
-        }
-    }
-
-    var defaultCostRates: CostRates {
-        switch self {
-        case .openAI:
-            CostRates(transcriptionPerMinute: 0.003, inputPerMillionTokens: 0.40, outputPerMillionTokens: 1.60)
-        case .openRouter:
-            CostRates(transcriptionPerMinute: 0.003, inputPerMillionTokens: 0.10, outputPerMillionTokens: 0.40)
-        case .custom:
-            CostRates(transcriptionPerMinute: 0, inputPerMillionTokens: 0, outputPerMillionTokens: 0)
-        }
-    }
 }
 
 nonisolated enum OutputMode: String, CaseIterable, Codable, Identifiable, Sendable {
@@ -139,21 +112,68 @@ nonisolated enum HotkeyShortcut: String, CaseIterable, Codable, Identifiable, Se
 }
 
 nonisolated struct CostRates: Codable, Sendable {
-    var transcriptionPerMinute: Double
+    var audioPerMillionTokens: Double
     var inputPerMillionTokens: Double
     var outputPerMillionTokens: Double
+
+    // Gemini 3.5 Flash-Lite standard USD rates; editable for future models.
+    static let geminiFlashLite = CostRates(audioPerMillionTokens: 0.30, inputPerMillionTokens: 0.30, outputPerMillionTokens: 2.50)
+
+    static func migrationRates(for model: String) -> CostRates {
+        // Known standard rates as of September 7, 2026. Update in Settings when pricing changes.
+        switch model {
+        case "google/gemini-3.5-flash-lite": return .geminiFlashLite
+        case "google/gemini-3.5-flash":
+            return CostRates(audioPerMillionTokens: 3, inputPerMillionTokens: 1.50, outputPerMillionTokens: 9)
+        case "google/gemini-3.8-flash", "google/gemini-3.7-flash", "google/gemini-3.6-flash":
+            return CostRates(audioPerMillionTokens: 0.75, inputPerMillionTokens: 0.75, outputPerMillionTokens: 3.75)
+        default:
+            // Unknown model rates must be supplied by the user, not guessed from another model.
+            return CostRates(audioPerMillionTokens: 0, inputPerMillionTokens: 0, outputPerMillionTokens: 0)
+        }
+    }
 }
 
 nonisolated struct UsageRecord: Codable, Identifiable, Sendable {
     var id = UUID()
     let createdAt: Date
     let provider: AIProvider
-    let transcriptionModel: String
-    let polishModel: String
+    let model: String
     let wordCount: Int
     let audioDurationSeconds: Double
     let estimatedCostUSD: Double
     let suggestions: [String]
+
+    init(createdAt: Date, provider: AIProvider, model: String, wordCount: Int,
+         audioDurationSeconds: Double, estimatedCostUSD: Double, suggestions: [String]) {
+        self.createdAt = createdAt
+        self.provider = provider
+        self.model = model
+        self.wordCount = wordCount
+        self.audioDurationSeconds = audioDurationSeconds
+        self.estimatedCostUSD = estimatedCostUSD
+        self.suggestions = suggestions
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, createdAt, provider, model, wordCount, audioDurationSeconds, estimatedCostUSD, suggestions
+    }
+    private enum LegacyKeys: String, CodingKey { case polishModel, transcriptionModel }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let legacy = try decoder.container(keyedBy: LegacyKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        createdAt = try values.decode(Date.self, forKey: .createdAt)
+        provider = try values.decode(AIProvider.self, forKey: .provider)
+        model = try values.decodeIfPresent(String.self, forKey: .model)
+            ?? legacy.decodeIfPresent(String.self, forKey: .polishModel)
+            ?? legacy.decodeIfPresent(String.self, forKey: .transcriptionModel) ?? "Unknown"
+        wordCount = try values.decode(Int.self, forKey: .wordCount)
+        audioDurationSeconds = try values.decode(Double.self, forKey: .audioDurationSeconds)
+        estimatedCostUSD = try values.decode(Double.self, forKey: .estimatedCostUSD)
+        suggestions = try values.decode([String].self, forKey: .suggestions)
+    }
 }
 
 nonisolated struct DictionaryEntry: Codable, Identifiable, Hashable, Sendable {
@@ -189,14 +209,13 @@ nonisolated struct DiagnosticItem: Identifiable, Sendable {
 }
 
 nonisolated struct ProviderSettings: Codable, Sendable {
-    var provider: AIProvider = .openAI
-    var baseURL = AIProvider.openAI.defaultBaseURL
-    var transcriptionModel = AIProvider.openAI.defaultTranscriptionModel
-    var polishModel = AIProvider.openAI.defaultPolishModel
+    var provider: AIProvider = .openRouter
+    var baseURL = AIProvider.openRouter.defaultBaseURL
+    static let defaultModel = "google/gemini-3.5-flash-lite"
+    var model = Self.defaultModel
     var systemPrompt = Self.defaultSystemPrompt
-    var costRates = AIProvider.openAI.defaultCostRates
+    var costRates = CostRates.geminiFlashLite
     var smartPolish = true
-    var fastSinglePass = true
     var outputMode: OutputMode = .translateEnglish
     var hotkeyShortcut: HotkeyShortcut = .function
     var personalDictionary: [DictionaryEntry] = []
@@ -214,10 +233,6 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     Preserve the speaker's meaning while making the result clear, natural, and ready to use.
     Follow the selected writing mode without adding unsupported facts or ideas.
     """
-
-    var requiresLanguageModelProcessing: Bool {
-        smartPolish || outputMode != .verbatim
-    }
 
     static let starterVocabulary = [
         DictionaryEntry(spoken: "chat gpt", replacement: "ChatGPT"),
@@ -250,8 +265,8 @@ nonisolated struct ProviderSettings: Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case provider, baseURL, transcriptionModel, polishModel, systemPrompt, costRates
-        case smartPolish, preserveHinglish, fastSinglePass
+        case provider, baseURL, model, polishModel, systemPrompt, costRates
+        case smartPolish, preserveHinglish
         case outputMode, hotkeyShortcut, personalDictionary
         case voiceSnippets, spokenCommandsEnabled, liveTranscriptionEnabled
         case historyEnabled, historyRetentionDays
@@ -259,14 +274,23 @@ nonisolated struct ProviderSettings: Codable, Sendable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        provider = try values.decodeIfPresent(AIProvider.self, forKey: .provider) ?? .openAI
-        baseURL = try values.decodeIfPresent(String.self, forKey: .baseURL) ?? provider.defaultBaseURL
-        transcriptionModel = try values.decodeIfPresent(String.self, forKey: .transcriptionModel) ?? provider.defaultTranscriptionModel
-        polishModel = try values.decodeIfPresent(String.self, forKey: .polishModel) ?? provider.defaultPolishModel
+        // Migrate the old two-stage setup without ever reusing another provider's key.
+        provider = .openRouter
+        baseURL = AIProvider.openRouter.defaultBaseURL
+        if let savedModel = try values.decodeIfPresent(String.self, forKey: .model) {
+            model = savedModel
+        } else {
+            let previousProvider = try values.decodeIfPresent(AIProvider.self, forKey: .provider)
+            let previousModel = try values.decodeIfPresent(String.self, forKey: .polishModel)
+            if previousProvider == .openRouter, let previousModel, previousModel.hasPrefix("google/gemini-") {
+                model = previousModel
+            } else {
+                model = Self.defaultModel
+            }
+        }
         systemPrompt = try values.decodeIfPresent(String.self, forKey: .systemPrompt) ?? Self.defaultSystemPrompt
-        costRates = try values.decodeIfPresent(CostRates.self, forKey: .costRates) ?? provider.defaultCostRates
+        costRates = (try? values.decode(CostRates.self, forKey: .costRates)) ?? .migrationRates(for: model)
         smartPolish = try values.decodeIfPresent(Bool.self, forKey: .smartPolish) ?? true
-        fastSinglePass = try values.decodeIfPresent(Bool.self, forKey: .fastSinglePass) ?? true
         let legacyTranslate = try values.decodeIfPresent(Bool.self, forKey: .preserveHinglish) ?? true
         outputMode = try values.decodeIfPresent(OutputMode.self, forKey: .outputMode)
             ?? (legacyTranslate ? .translateEnglish : .cleanSameLanguage)
@@ -283,12 +307,10 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(provider, forKey: .provider)
         try values.encode(baseURL, forKey: .baseURL)
-        try values.encode(transcriptionModel, forKey: .transcriptionModel)
-        try values.encode(polishModel, forKey: .polishModel)
+        try values.encode(model, forKey: .model)
         try values.encode(systemPrompt, forKey: .systemPrompt)
         try values.encode(costRates, forKey: .costRates)
         try values.encode(smartPolish, forKey: .smartPolish)
-        try values.encode(fastSinglePass, forKey: .fastSinglePass)
         try values.encode(outputMode == .translateEnglish, forKey: .preserveHinglish)
         try values.encode(outputMode, forKey: .outputMode)
         try values.encode(hotkeyShortcut, forKey: .hotkeyShortcut)
@@ -315,6 +337,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
             value.save()
             defaults.set(true, forKey: starterContentMigrationKey)
         }
+        value.save() // Persist the single-model migration, including removal of obsolete keys.
         return value
     }
 

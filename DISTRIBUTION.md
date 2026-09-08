@@ -2,6 +2,14 @@
 
 The development script creates an ad-hoc signed app for local testing. Do not present that build as a trusted public macOS release.
 
+## v4.5.0 community-test download
+
+- Version `4.5.0`, build `8`; macOS 14 or later.
+- The published ZIP is built for Apple Silicon (`arm64`), not a universal Intel/Apple Silicon binary.
+- Ad-hoc signed, not Developer ID signed, not hardened/notarized, and not verified on a clean Mac account. Gatekeeper may block it. Do not describe it as a trusted production release or disable system-wide security protections to install it.
+- A SHA-256 checksum accompanies the ZIP to verify download integrity; it does not establish Apple approval or publisher identity.
+- Release notes distinguish automated/mock validation from real-provider and cross-application testing.
+
 ## Before publishing source
 
 1. Run `./Scripts/check-public.sh`.
@@ -27,7 +35,7 @@ The onboarding and release page should clearly explain that:
 
 - Microphone access records only during push-to-talk.
 - Accessibility access is required for the global shortcut and automatic paste.
-- Cloud mode sends audio directly to the selected third-party provider.
+- Cloud mode sends audio and instructions to OpenRouter for the selected audio model. Selected text is included only for Magic Voice Edit.
 - Provider retention, training, and regional processing policies apply separately.
 - ChatterKey does not operate an analytics or transcription backend in the current architecture.
 

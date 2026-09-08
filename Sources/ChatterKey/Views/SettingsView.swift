@@ -249,12 +249,8 @@ struct SettingsView: View {
                     isOn: $draft.spokenCommandsEnabled
                 )
                 cardDivider
-                toggleRow(
-                    "Fast single-pass processing",
-                    detail: draft.provider == .openRouter ? "Use one audio-capable model for lower latency." : "Available with OpenRouter audio-capable models.",
-                    isOn: $draft.fastSinglePass
-                )
-                .disabled(draft.provider != .openRouter)
+                Label("One audio model request per attempt, including voice edits. Retry is manual.", systemImage: "bolt.fill")
+                    .font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
 
             settingsCard("Push to talk", icon: "keyboard") {
@@ -309,66 +305,49 @@ struct SettingsView: View {
     private var providerContent: some View {
         VStack(spacing: 16) {
             settingsCard("Connection", icon: "network") {
-                settingRow("Provider", detail: "Choose where audio and text are processed") {
-                    Picker("", selection: $draft.provider) {
-                        ForEach(AIProvider.allCases) { Text($0.title).tag($0) }
-                    }
-                    .labelsHidden()
-                    .frame(width: 180)
-                    .onChange(of: draft.provider) { _, provider in
-                        draft.baseURL = provider.defaultBaseURL
-                        draft.transcriptionModel = provider.defaultTranscriptionModel
-                        draft.polishModel = provider.defaultPolishModel
-                        draft.costRates = provider.defaultCostRates
-                        apiKey = appState.apiKey(for: provider)
-                        status = ""
-                    }
+                settingRow("Provider", detail: "Gemini audio processing through OpenRouter") {
+                    Text("OpenRouter").font(.system(size: 12))
                 }
                 cardDivider
-                if draft.provider == .custom {
-                    fieldRow("Base URL", placeholder: "https://api.example.com/v1", text: $draft.baseURL)
-                } else {
-                    settingRow("Base URL", detail: "Fixed to protect your provider API key") {
-                        Text(draft.provider.defaultBaseURL)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
+                settingRow("Base URL", detail: "Fixed to protect your OpenRouter API key") {
+                    Text(AIProvider.openRouter.defaultBaseURL)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
                 cardDivider
                 secureFieldRow("API key", placeholder: "Stored securely in macOS Keychain", text: $apiKey)
             }
 
-            settingsCard("Models", icon: "cpu") {
-                fieldRow("Transcription", placeholder: "Transcription model ID", text: $draft.transcriptionModel)
+            settingsCard("Audio model", icon: "cpu") {
+                fieldRow("Model", placeholder: ProviderSettings.defaultModel, text: $draft.model)
                 cardDivider
-                fieldRow("Audio / polishing", placeholder: "Writing model ID", text: $draft.polishModel)
-                if draft.fastSinglePass && draft.provider == .openRouter {
-                    cardDivider
-                    Label("Fast mode needs an audio-capable model.", systemImage: "bolt.fill")
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.secondary)
-                }
+                Text("One audio-capable model handles dictation, translation, cleanup, and voice edits. Default: Gemini 3.5 Flash-Lite. Future models must support audio input and text output.")
+                    .font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
 
             settingsCard("Cost estimation", icon: "dollarsign.circle") {
-                Text("Dashboard costs are local estimates. Update these rates whenever your provider or model pricing changes.")
+                Text("Dashboard costs estimate audio tokens (32/second), instructions, selected text, and output. Reasoning, retries and fees are excluded. Update rates when changing models.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if draft.costRates.audioPerMillionTokens <= 0 || draft.costRates.outputPerMillionTokens <= 0 {
+                    Label("Set the selected model's rates below; zero rates make estimates incomplete.", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 10.5)).foregroundStyle(.orange)
+                }
                 cardDivider
-                numberFieldRow("Transcription", detail: "USD per audio minute", value: $draft.costRates.transcriptionPerMinute)
+                numberFieldRow("Audio input", detail: "USD per 1 million audio tokens", value: $draft.costRates.audioPerMillionTokens)
                 cardDivider
                 numberFieldRow("Input tokens", detail: "USD per 1 million tokens", value: $draft.costRates.inputPerMillionTokens)
                 cardDivider
                 numberFieldRow("Output tokens", detail: "USD per 1 million tokens", value: $draft.costRates.outputPerMillionTokens)
                 cardDivider
                 HStack {
-                    Text("Use provider defaults")
+                    Text("Gemini 3.5 Flash-Lite rates")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Reset Rates") { draft.costRates = draft.provider.defaultCostRates }
+                    Button("Reset Rates") { draft.costRates = .geminiFlashLite }
                         .controlSize(.small)
                 }
             }
@@ -389,7 +368,7 @@ struct SettingsView: View {
     private var instructionsContent: some View {
         VStack(spacing: 16) {
             settingsCard("Custom system prompt", icon: "text.bubble") {
-                Text("Edit the core instruction used for normal dictation and fast single-pass processing. Writing mode, vocabulary, snippets, and output safeguards are added automatically.")
+                Text("Edit the core instruction used for single-pass dictation. Writing mode, vocabulary, snippets, and output instructions are added automatically.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

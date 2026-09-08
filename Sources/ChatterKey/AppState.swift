@@ -276,7 +276,8 @@ final class AppState: ObservableObject {
                     finalText: final,
                     spokenText: spokenDraft,
                     audioURL: url,
-                    settings: currentSettings
+                    settings: currentSettings,
+                    selectedText: editingText
                 )
                 do {
                     try TextInserter.insert(final)
@@ -312,7 +313,8 @@ final class AppState: ObservableObject {
         finalText: String,
         spokenText: String,
         audioURL: URL,
-        settings: ProviderSettings
+        settings: ProviderSettings,
+        selectedText: String?
     ) {
         let source = spokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? finalText : spokenText
         let duration: Double
@@ -324,15 +326,15 @@ final class AppState: ObservableObject {
         let record = UsageRecord(
             createdAt: Date(),
             provider: settings.provider,
-            transcriptionModel: settings.transcriptionModel,
-            polishModel: settings.polishModel,
+            model: settings.model,
             wordCount: UsageAnalytics.wordCount(source),
             audioDurationSeconds: duration,
             estimatedCostUSD: UsageAnalytics.estimatedCost(
                 durationSeconds: duration,
                 spokenText: source,
                 finalText: finalText,
-                settings: settings
+                settings: settings,
+                selectedText: selectedText
             ),
             suggestions: UsageAnalytics.suggestions(for: source)
         )

@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v0.4.0/ChatterKey-v0.4.0.zip">Download for macOS</a></strong>
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <a href="https://imhimansu28.github.io/ChatterKey/">Product website</a>
   &nbsp;·&nbsp;
@@ -22,7 +22,19 @@
 </p>
 
 > [!IMPORTANT]
-> ChatterKey is bring-your-own-key software. Audio and processing instructions go directly to the provider you configure—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
+> ChatterKey is bring-your-own-key software. Audio and processing instructions go directly to OpenRouter for your selected audio-capable model—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
+
+## New in v4.5.0 — One model. One request.
+
+Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and Magic Voice Edit through **one OpenRouter model request per attempt**. No separate transcription/polishing stages, hidden repair calls, or automatic retries. Settings expose one editable audio-model ID, and the dashboard estimates audio and text tokens for that request.
+
+- Improved selection detection for apps with limited Accessibility support.
+- Voice edits send selected text and instruction audio together.
+- Existing preferences and local history migrate; provider API keys are never transferred.
+- Read the [release announcement](docs/releases/v4.5.0.md) or [full changelog](CHANGELOG.md#450---2026-09-08).
+
+> [!WARNING]
+> The downloadable v4.5.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
 
 ## See it in action
 
@@ -35,7 +47,7 @@
 | Regular dictation | ChatterKey |
 | --- | --- |
 | Returns a raw transcript | Produces polished, ready-to-use text |
-| Uses a fixed service or model | Supports OpenAI, OpenRouter, and compatible custom providers |
+| Uses a fixed service or model | Uses one configurable audio model, defaulting to Gemini 3.5 Flash-Lite via OpenRouter |
 | Misspells names and technical terms | Learns exact spellings through personal vocabulary |
 | Hides the writing instructions | Lets you edit and preview the AI system prompt |
 | Requires separate billing checks | Estimates whole-process provider cost locally |
@@ -83,7 +95,7 @@
 
 - Words spoken, dictations, speaking time, and average WPM
 - Daily activity and provider breakdowns
-- Whole-process cost estimates for transcription and optional polishing
+- Single-request cost estimates for audio input, instructions, and text output
 - Small suggestions for repeated phrases, filler words, and long thoughts
 
 </td>
@@ -93,7 +105,7 @@
 ## Start in about 30 seconds
 
 1. **Download** the latest release and move `ChatterKey.app` to Applications.
-2. **Choose a provider** and add your API key in the setup guide.
+2. **Connect OpenRouter** with your API key; Gemini 3.5 Flash-Lite is the default model.
 3. **Allow permissions** for Microphone and Accessibility. Speech Recognition is optional for live preview.
 4. **Hold your shortcut**, speak, then release to process and insert the result.
 
@@ -102,14 +114,26 @@
 
 ## How it works
 
-<p align="center">
-  <img src="docs/assets/chatterkey-architecture.png" width="100%" alt="ChatterKey voice typing architecture and processing flow">
-</p>
+```mermaid
+flowchart TD
+    A["Hold shortcut and record audio"] --> B["Release shortcut"]
+    B --> C["One OpenRouter request: audio + instructions + selected text when editing"]
+    C --> D["Gemini 3.5 Flash-Lite: one configurable audio model"]
+    D --> E["Final text"]
+    E --> F["Local formatting for non-verbatim dictation"]
+    F --> G["Insert into the focused app"]
+    C --> H["Failure: show error, no automatic retry"]
+    H --> I["User chooses Retry"]
+    I --> C
+```
 
 1. SwiftUI coordinates the menu-bar app, Settings, Dashboard, History, and floating status UI.
 2. AVFoundation captures a temporary WAV recording while optional on-device Speech provides the rough live preview.
-3. The selected provider transcribes the audio and optionally applies the active writing mode and editable system instructions.
-4. ChatterKey applies local snippet and formatting rules, then macOS Accessibility inserts the final result.
+3. One audio-capable model receives the recording and instructions in a single OpenRouter request. For Magic Voice Edit, the selected text is included in that same request. There is no separate transcription, polishing, or English-repair call.
+4. ChatterKey applies local snippet and formatting rules for non-verbatim dictation, then inserts the final result. Voice edits and verbatim output bypass those local transformations.
+
+Failures are shown to the user; ChatterKey does not automatically retry or fall back to another model. The explicit Retry button starts a new attempt. The optional on-device live preview is not an additional cloud request.
+
 
 ## Transparent by design
 
@@ -130,6 +154,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 
 | Version | Released | Links |
 | --- | --- | --- |
+| `v4.5.0` | September 8, 2026 | [Release notes][release-v4.5.0] · [Detailed changes](CHANGELOG.md#450---2026-09-08) |
 | `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
 | `v0.3.1` | August 25, 2026 | [Release notes][release-v0.3.1] · [Detailed changes](CHANGELOG.md#031---2026-08-25) |
 | `v0.3.0` | August 25, 2026 | [Release notes][release-v0.3.0] · [Detailed changes](CHANGELOG.md#030---2026-08-25) |
@@ -147,7 +172,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 - Swift 6 toolchain
 - Microphone and Accessibility permissions
 - Optional Speech Recognition permission for live preview
-- An API key for the selected cloud provider
+- An OpenRouter API key
 
 ### Build and install
 
@@ -168,10 +193,12 @@ The development package is ad-hoc signed. Review [DISTRIBUTION.md](DISTRIBUTION.
 
 Model availability and pricing change over time, so every model ID and cost-estimation rate remains editable in Settings.
 
-- OpenAI transcription: `gpt-4o-mini-transcribe`
-- OpenAI cleanup: `gpt-4.1-mini`
-- OpenRouter transcription fallback: `openai/whisper-large-v3`
-- OpenRouter fast audio processing: `google/gemini-3.5-flash-lite`
+- Provider: OpenRouter, with its official API host fixed for credential safety.
+- Audio model: `google/gemini-3.5-flash-lite` for every writing mode, including verbatim and voice edits.
+- Replace the single model ID in Settings when adopting another audio-input/text-output model. Update its rates at the same time.
+- Gemini 3.5 Flash-Lite standard estimates: $0.30/M audio input tokens, $0.30/M text input tokens, $2.50/M output tokens (checked September 7, 2026).
+- Cost estimates use 32 audio tokens/second and approximate text tokens. Selected text is counted for edits; the on-device rough transcript is not billed as another text input. Extra reasoning, retries, failed calls, taxes, and fees are not included.
+- Legacy settings migrate to the single-model schema. Existing OpenRouter Gemini selections and local history remain available. Other provider setups move to the Gemini default and require an OpenRouter key; keys are never copied between providers.
 
 </details>
 
@@ -199,6 +226,7 @@ Bug reports, feature ideas, documentation improvements, and focused pull request
 
 MIT — see [LICENSE](LICENSE).
 
+[release-v4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [release-v0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
 [release-v0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1
 [release-v0.3.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.0

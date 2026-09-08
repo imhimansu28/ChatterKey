@@ -13,10 +13,10 @@ Please use GitHub Security Advisories to report vulnerabilities privately. Do no
 
 ## Provider endpoint safety
 
-- OpenAI and OpenRouter requests are pinned to their official API hosts so a modified preference cannot redirect a provider key elsewhere.
-- Custom providers must use HTTPS. Plain HTTP is accepted only for `localhost`, `127.0.0.1`, and `::1` development endpoints.
-- Provider redirects are rejected. Configure the final API base URL directly.
-- A custom provider receives the configured API key, audio, prompts, and any selected text used by Magic Voice Edit. Only use endpoints you trust.
+- Processing requests are pinned to the official OpenRouter API host so a modified preference cannot redirect the API key elsewhere.
+- Legacy OpenAI/custom provider configurations are not accepted by the single-model client. Migration never copies their API keys to OpenRouter.
+- Provider redirects are rejected.
+- The selected model receives audio, prompts, and any selected text used by Magic Voice Edit in one request. Only use models and hosting providers you trust.
 
 ## Supported versions
 

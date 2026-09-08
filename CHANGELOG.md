@@ -6,21 +6,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-09-08
+
 ### Changed
 
 - Redesigned the README as a visual product guide with a generated hero, animated workflow demo, feature comparison, quick-start guide, transparency table, and compact developer sections.
 - Strengthened Translate to English instructions so mixed Hindi-English fragments are converted consistently while names, brands, code, URLs, and filenames stay intact.
-- Kept first-party provider base URLs fixed in Settings; custom endpoints remain configurable.
+- Unified all writing modes and Magic Voice Edit on one configurable audio-capable model, defaulting to Gemini 3.5 Flash-Lite through OpenRouter.
+- Removed separate transcription/polishing controls, automatic fallback, English-repair calls, and automatic retries. Retry is now always explicit.
+- Migrated legacy settings and usage metadata to one model while retaining local history and keeping provider keys isolated.
 
 ### Fixed
 
-- Translate to English and other writing modes now continue using the text-processing model even when optional smart cleanup is disabled.
-- Added a targeted English-only compliance repair when a provider leaves clear Devanagari or Romanized Hindi in translated output.
-- Cost estimates now include text processing whenever the selected writing mode requires it.
+- Translate to English and all other writing modes use the same audio request even when optional smart cleanup is disabled.
+- Added a clipboard-copy selection fallback for apps that do not expose selected text through standard Accessibility attributes, improving Magic Voice Edit compatibility with browsers, Electron apps, PDFs, Apple Notes, and editors. Compatibility still depends on the target app.
+- Tagged synthetic copy events so they do not interfere with push-to-talk shortcut handling.
+- Magic Voice Edit now sends selected text and instruction audio together through chat-completions `input_audio`, without transcribing the instruction separately.
+- Reject empty, blocked, and truncated model responses rather than inserting incomplete results.
+- Preserve literal formatting-command and snippet phrases in Verbatim mode.
+- Cost estimates use audio-token pricing plus instructions, selected text, and output tokens instead of charging a separate transcription stage.
+
+### Distribution
+
+- Updated the app to version `4.5.0`, build `8`, with matching README, website, announcement, and release download links.
+- Published an Apple Silicon community-test ZIP with a SHA-256 checksum. This build is ad-hoc signed and not Apple-notarized.
 
 ### Security
 
-- Pinned OpenAI and OpenRouter requests to their official API hosts, require HTTPS for remote custom providers, allow HTTP only on localhost, and reject provider redirects.
+- Pin active processing to the official OpenRouter host, reject legacy-provider requests and redirects, and never migrate API keys between provider accounts.
 
 ## [0.4.0] - 2026-08-25
 
@@ -150,7 +163,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Temporary audio cleanup and public-source safety checks.
 - Privacy, security, distribution, and MIT license documentation.
 
-[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
 [0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1
 [0.3.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.0

@@ -75,6 +75,9 @@ final class GlobalHotkey {
     }
 
     private func handleCGEvent(type: CGEventType, event: CGEvent) -> Bool {
+        if event.getIntegerValueField(.eventSourceUserData) == TextSelectionReader.syntheticCopyEventTag {
+            return false
+        }
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
         let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) == 1
