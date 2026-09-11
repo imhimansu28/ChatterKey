@@ -3,7 +3,7 @@ import Foundation
 nonisolated enum ProviderEndpointPolicy {
     static func baseURL(for settings: ProviderSettings) throws -> URL {
         switch settings.provider {
-        case .openAI, .openRouter:
+        case .google, .openAI, .openRouter:
             guard let url = URL(string: settings.provider.defaultBaseURL) else {
                 throw ProviderEndpointError.invalidURL
             }

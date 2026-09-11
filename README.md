@@ -22,7 +22,19 @@
 </p>
 
 > [!IMPORTANT]
-> ChatterKey is bring-your-own-key software. Audio and processing instructions go directly to OpenRouter for your selected audio-capable model—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
+> ChatterKey is bring-your-own-key software. Audio and processing instructions go to Google Direct or OpenRouter, depending on your selected connection—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
+
+## Google Direct — available in the current source/local build
+
+Use your own **Gemini API key directly**, without an OpenRouter account:
+
+1. Open **Settings → AI Provider → Connection → Google Direct**.
+2. Enter your Gemini API key from Google AI Studio in the **Gemini API key** field.
+3. Keep `gemini-3.5-flash-lite` as the model, then **Save**. Test Connection checks API access; dictate a short clip to check audio-model access.
+
+Requests use Google's fixed OpenAI-compatible endpoint through the existing Swift HTTP client—no extra SDK or second processing stage. Google keys stay in a separate Keychain account from OpenRouter keys. Model and cost-rate settings are retained separately when switching connections. Existing installations keep their working connection; new installs default to Google Direct.
+
+**This feature is not included in the published v4.5.0 download below.** It is available in the unreleased source/local build (build 9). The v4.5.0 release notes describe that release's OpenRouter-only connection.
 
 ## New in v4.5.0 — One model. One request.
 
@@ -47,7 +59,7 @@ Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and
 | Regular dictation | ChatterKey |
 | --- | --- |
 | Returns a raw transcript | Produces polished, ready-to-use text |
-| Uses a fixed service or model | Uses one configurable audio model, defaulting to Gemini 3.5 Flash-Lite via OpenRouter |
+| Uses a fixed service or model | Uses one configurable audio model, defaulting to Gemini 3.5 Flash-Lite via Google Direct in the current source build |
 | Misspells names and technical terms | Learns exact spellings through personal vocabulary |
 | Hides the writing instructions | Lets you edit and preview the AI system prompt |
 | Requires separate billing checks | Estimates whole-process provider cost locally |
@@ -105,7 +117,7 @@ Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and
 ## Start in about 30 seconds
 
 1. **Download** the latest release and move `ChatterKey.app` to Applications.
-2. **Connect OpenRouter** with your API key; Gemini 3.5 Flash-Lite is the default model.
+2. **Connect your provider** with its own API key: Google Direct in the current source/local build, or OpenRouter in v4.5.0.
 3. **Allow permissions** for Microphone and Accessibility. Speech Recognition is optional for live preview.
 4. **Hold your shortcut**, speak, then release to process and insert the result.
 
@@ -117,7 +129,7 @@ Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and
 ```mermaid
 flowchart TD
     A["Hold shortcut and record audio"] --> B["Release shortcut"]
-    B --> C["One OpenRouter request: audio + instructions + selected text when editing"]
+    B --> C["One request to Google Direct or OpenRouter: audio + instructions + selected text when editing"]
     C --> D["Gemini 3.5 Flash-Lite: one configurable audio model"]
     D --> E["Final text"]
     E --> F["Local formatting for non-verbatim dictation"]
@@ -129,7 +141,7 @@ flowchart TD
 
 1. SwiftUI coordinates the menu-bar app, Settings, Dashboard, History, and floating status UI.
 2. AVFoundation captures a temporary WAV recording while optional on-device Speech provides the rough live preview.
-3. One audio-capable model receives the recording and instructions in a single OpenRouter request. For Magic Voice Edit, the selected text is included in that same request. There is no separate transcription, polishing, or English-repair call.
+3. One audio-capable model receives the recording and instructions in a single request to the selected connection. For Magic Voice Edit, the selected text is included in that same request. There is no separate transcription, polishing, or English-repair call.
 4. ChatterKey applies local snippet and formatting rules for non-verbatim dictation, then inserts the final result. Voice edits and verbatim output bypass those local transformations.
 
 Failures are shown to the user; ChatterKey does not automatically retry or fall back to another model. The explicit Retry button starts a new attempt. The optional on-device live preview is not an additional cloud request.
@@ -172,7 +184,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 - Swift 6 toolchain
 - Microphone and Accessibility permissions
 - Optional Speech Recognition permission for live preview
-- An OpenRouter API key
+- A Gemini API key for Google Direct, or an OpenRouter API key for OpenRouter
 
 ### Build and install
 
@@ -193,12 +205,12 @@ The development package is ad-hoc signed. Review [DISTRIBUTION.md](DISTRIBUTION.
 
 Model availability and pricing change over time, so every model ID and cost-estimation rate remains editable in Settings.
 
-- Provider: OpenRouter, with its official API host fixed for credential safety.
-- Audio model: `google/gemini-3.5-flash-lite` for every writing mode, including verbatim and voice edits.
+- Connections: Google Direct (new-install default) and OpenRouter. Each uses its fixed official API host and its own Keychain account.
+- Audio model: `gemini-3.5-flash-lite` on Google Direct; `google/gemini-3.5-flash-lite` on OpenRouter. Both use one model for all writing modes and voice edits.
 - Replace the single model ID in Settings when adopting another audio-input/text-output model. Update its rates at the same time.
 - Gemini 3.5 Flash-Lite standard estimates: $0.30/M audio input tokens, $0.30/M text input tokens, $2.50/M output tokens (checked September 7, 2026).
 - Cost estimates use 32 audio tokens/second and approximate text tokens. Selected text is counted for edits; the on-device rough transcript is not billed as another text input. Extra reasoning, retries, failed calls, taxes, and fees are not included.
-- Legacy settings migrate to the single-model schema. Existing OpenRouter Gemini selections and local history remain available. Other provider setups move to the Gemini default and require an OpenRouter key; keys are never copied between providers.
+- Legacy settings migrate to the single-model schema. Existing OpenRouter Gemini selections and local history remain available. Unsupported legacy OpenAI/custom setups retain the v4.5 OpenRouter migration path; keys are never copied between providers.
 
 </details>
 

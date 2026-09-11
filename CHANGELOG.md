@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Added Google Direct using a Gemini API key and Google's OpenAI-compatible audio endpoint, alongside the existing OpenRouter connection.
+- Added a connection picker and provider-specific key labels in Settings and onboarding. New installs default to Google Direct with `gemini-3.5-flash-lite`.
+- Preserve each connection's model and cost-rate settings when switching; API keys remain isolated in provider-specific Keychain accounts.
+
+### Changed
+
+- Existing OpenRouter setups stay on OpenRouter during migration. Choosing Google Direct is explicit and never reuses an OpenRouter key.
+- Google payloads use `reasoning_effort` and omit OpenRouter routing parameters and headers. Both connections retain one model request per attempt and manual-only Retry.
+- Expanded the existing regression harness across both connections, including audio payloads, all writing modes, voice edits, authentication/quota errors, and settings round trips.
+- Incremented the local development build to `9`; the published v4.5.0 release remains build `8`.
+
 ## [4.5.0] - 2026-09-08
 
 ### Changed

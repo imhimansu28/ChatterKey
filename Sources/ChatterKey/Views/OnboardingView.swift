@@ -81,16 +81,30 @@ struct OnboardingView: View {
         .padding(36)
     }
 
+    private var providerSelection: Binding<AIProvider> {
+        Binding(
+            get: { draft.provider },
+            set: { provider in
+                draft.selectProvider(provider)
+                // Always load this provider's own key, never carry the previous field across.
+                apiKey = appState.apiKey(for: provider)
+                status = ""
+            }
+        )
+    }
+
     private var providerSetup: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Connect Gemini through OpenRouter").font(.title2.bold())
-            Text("Use an OpenRouter API key. One audio model handles every writing mode and voice edit. Your key stays in macOS Keychain.")
+            Text("Connect your audio model").font(.title2.bold())
+            Text("Use your Gemini key with Google Direct, or choose OpenRouter. One model handles every mode; keys stay separate in macOS Keychain.")
                 .foregroundStyle(.secondary)
             Form {
-                LabeledContent("Provider", value: "OpenRouter")
-                LabeledContent("Model", value: "Gemini 3.5 Flash-Lite")
-                LabeledContent("Base URL", value: AIProvider.openRouter.defaultBaseURL)
-                SecureField("API key", text: $apiKey)
+                Picker("Connection", selection: providerSelection) {
+                    ForEach(AIProvider.availableConnections) { Text($0.title).tag($0) }
+                }
+                LabeledContent("Model", value: draft.model)
+                LabeledContent("Base URL", value: draft.provider.defaultBaseURL)
+                SecureField(draft.provider == .google ? "Gemini API key" : "OpenRouter API key", text: $apiKey)
                 Picker("Default output", selection: $draft.outputMode) {
                     ForEach(OutputMode.allCases) { Text($0.title).tag($0) }
                 }

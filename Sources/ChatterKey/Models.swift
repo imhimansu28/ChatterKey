@@ -1,14 +1,33 @@
 import Foundation
 
 nonisolated enum AIProvider: String, CaseIterable, Codable, Identifiable, Sendable {
+    case google
     case openAI
     case openRouter
     case custom
 
     var id: String { rawValue }
 
+    static let availableConnections: [AIProvider] = [.google, .openRouter]
+    var supportsAudioRequests: Bool { Self.availableConnections.contains(self) }
+
+    var defaultModel: String {
+        self == .google ? "gemini-3.5-flash-lite" : "google/gemini-3.5-flash-lite"
+    }
+
+    func requestModelID(_ value: String) -> String {
+        var model = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if self == .google {
+            for prefix in ["google/", "models/"] where model.hasPrefix(prefix) {
+                model = String(model.dropFirst(prefix.count))
+            }
+        }
+        return model
+    }
+
     var title: String {
         switch self {
+        case .google: "Google Direct"
         case .openAI: "OpenAI"
         case .openRouter: "OpenRouter"
         case .custom: "Custom"
@@ -17,6 +36,7 @@ nonisolated enum AIProvider: String, CaseIterable, Codable, Identifiable, Sendab
 
     var defaultBaseURL: String {
         switch self {
+        case .google: "https://generativelanguage.googleapis.com/v1beta/openai"
         case .openAI: "https://api.openai.com/v1"
         case .openRouter: "https://openrouter.ai/api/v1"
         case .custom: ""
@@ -121,11 +141,11 @@ nonisolated struct CostRates: Codable, Sendable {
 
     static func migrationRates(for model: String) -> CostRates {
         // Known standard rates as of September 7, 2026. Update in Settings when pricing changes.
-        switch model {
-        case "google/gemini-3.5-flash-lite": return .geminiFlashLite
-        case "google/gemini-3.5-flash":
+        switch AIProvider.google.requestModelID(model) {
+        case "gemini-3.5-flash-lite": return .geminiFlashLite
+        case "gemini-3.5-flash":
             return CostRates(audioPerMillionTokens: 3, inputPerMillionTokens: 1.50, outputPerMillionTokens: 9)
-        case "google/gemini-3.8-flash", "google/gemini-3.7-flash", "google/gemini-3.6-flash":
+        case "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash":
             return CostRates(audioPerMillionTokens: 0.75, inputPerMillionTokens: 0.75, outputPerMillionTokens: 3.75)
         default:
             // Unknown model rates must be supplied by the user, not guessed from another model.
@@ -208,13 +228,19 @@ nonisolated struct DiagnosticItem: Identifiable, Sendable {
     let detail: String
 }
 
+nonisolated struct AudioModelConfiguration: Codable, Sendable {
+    var model: String
+    var costRates: CostRates
+}
+
 nonisolated struct ProviderSettings: Codable, Sendable {
-    var provider: AIProvider = .openRouter
-    var baseURL = AIProvider.openRouter.defaultBaseURL
-    static let defaultModel = "google/gemini-3.5-flash-lite"
+    var provider: AIProvider = .google
+    var baseURL = AIProvider.google.defaultBaseURL
+    static let defaultModel = AIProvider.google.defaultModel
     var model = Self.defaultModel
     var systemPrompt = Self.defaultSystemPrompt
     var costRates = CostRates.geminiFlashLite
+    private var connectionModels: [String: AudioModelConfiguration] = [:]
     var smartPolish = true
     var outputMode: OutputMode = .translateEnglish
     var hotkeyShortcut: HotkeyShortcut = .function
@@ -264,8 +290,18 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         voiceSnippets = Self.starterSnippets
     }
 
+    mutating func selectProvider(_ selected: AIProvider) {
+        guard selected.supportsAudioRequests, selected != provider else { return }
+        connectionModels[provider.rawValue] = AudioModelConfiguration(model: model, costRates: costRates)
+        provider = selected
+        baseURL = selected.defaultBaseURL
+        let saved = connectionModels[selected.rawValue]
+        model = saved?.model ?? selected.defaultModel
+        costRates = saved?.costRates ?? .geminiFlashLite
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case provider, baseURL, model, polishModel, systemPrompt, costRates
+        case provider, baseURL, model, polishModel, systemPrompt, costRates, connectionModels
         case smartPolish, preserveHinglish
         case outputMode, hotkeyShortcut, personalDictionary
         case voiceSnippets, spokenCommandsEnabled, liveTranscriptionEnabled
@@ -274,18 +310,20 @@ nonisolated struct ProviderSettings: Codable, Sendable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        // Migrate the old two-stage setup without ever reusing another provider's key.
-        provider = .openRouter
-        baseURL = AIProvider.openRouter.defaultBaseURL
+        // Retain working connections. Unsupported legacy providers keep the v4.5 migration path.
+        // No keys are read or copied during decoding or connection switching.
+        let previousProvider = try values.decodeIfPresent(AIProvider.self, forKey: .provider) ?? .google
+        provider = previousProvider.supportsAudioRequests ? previousProvider : .openRouter
+        baseURL = provider.defaultBaseURL
+        connectionModels = try values.decodeIfPresent([String: AudioModelConfiguration].self, forKey: .connectionModels) ?? [:]
         if let savedModel = try values.decodeIfPresent(String.self, forKey: .model) {
             model = savedModel
         } else {
-            let previousProvider = try values.decodeIfPresent(AIProvider.self, forKey: .provider)
             let previousModel = try values.decodeIfPresent(String.self, forKey: .polishModel)
             if previousProvider == .openRouter, let previousModel, previousModel.hasPrefix("google/gemini-") {
                 model = previousModel
             } else {
-                model = Self.defaultModel
+                model = provider.defaultModel
             }
         }
         systemPrompt = try values.decodeIfPresent(String.self, forKey: .systemPrompt) ?? Self.defaultSystemPrompt
@@ -310,6 +348,7 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(model, forKey: .model)
         try values.encode(systemPrompt, forKey: .systemPrompt)
         try values.encode(costRates, forKey: .costRates)
+        try values.encode(connectionModels, forKey: .connectionModels)
         try values.encode(smartPolish, forKey: .smartPolish)
         try values.encode(outputMode == .translateEnglish, forKey: .preserveHinglish)
         try values.encode(outputMode, forKey: .outputMode)

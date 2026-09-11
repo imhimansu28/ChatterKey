@@ -302,25 +302,46 @@ struct SettingsView: View {
         }
     }
 
+    private var providerSelection: Binding<AIProvider> {
+        Binding(
+            get: { draft.provider },
+            set: { provider in
+                draft.selectProvider(provider)
+                // Always load this provider's own key, never carry the previous field across.
+                apiKey = appState.apiKey(for: provider)
+                status = ""
+            }
+        )
+    }
+
     private var providerContent: some View {
         VStack(spacing: 16) {
             settingsCard("Connection", icon: "network") {
-                settingRow("Provider", detail: "Gemini audio processing through OpenRouter") {
-                    Text("OpenRouter").font(.system(size: 12))
+                settingRow("Connection", detail: "Use your Gemini key directly, or your OpenRouter key") {
+                    Picker("Connection", selection: providerSelection) {
+                        ForEach(AIProvider.availableConnections) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .frame(width: 170)
+                    .disabled(isTesting)
                 }
                 cardDivider
-                settingRow("Base URL", detail: "Fixed to protect your OpenRouter API key") {
-                    Text(AIProvider.openRouter.defaultBaseURL)
+                settingRow("Base URL", detail: "Fixed to protect the selected connection’s API key") {
+                    Text(draft.provider.defaultBaseURL)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
                 cardDivider
-                secureFieldRow("API key", placeholder: "Stored securely in macOS Keychain", text: $apiKey)
+                secureFieldRow(draft.provider == .google ? "Gemini API key" : "OpenRouter API key", placeholder: "Stored securely in macOS Keychain", text: $apiKey)
+                Text(draft.provider == .google
+                     ? "Audio goes directly to Google. Enter your Google AI Studio Gemini key; no OpenRouter account is needed."
+                     : "Audio goes through OpenRouter. Use an OpenRouter key, not a Gemini key.")
+                    .font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
 
             settingsCard("Audio model", icon: "cpu") {
-                fieldRow("Model", placeholder: ProviderSettings.defaultModel, text: $draft.model)
+                fieldRow("Model", placeholder: draft.provider.defaultModel, text: $draft.model)
                 cardDivider
                 Text("One audio-capable model handles dictation, translation, cleanup, and voice edits. Default: Gemini 3.5 Flash-Lite. Future models must support audio input and text output.")
                     .font(.system(size: 10.5)).foregroundStyle(.secondary)
@@ -771,10 +792,11 @@ struct SettingsView: View {
     private func testConnection() {
         isTesting = true
         status = "Testing connection…"
+        let client = ProviderClient(settings: draft, apiKey: apiKey)
         Task {
             do {
-                try await ProviderClient(settings: draft, apiKey: apiKey).testConnection()
-                status = "Connected successfully"
+                try await client.testConnection()
+                status = "Connected to \(client.settings.provider.title). Audio-model access is checked when you dictate."
             } catch {
                 status = error.localizedDescription
             }

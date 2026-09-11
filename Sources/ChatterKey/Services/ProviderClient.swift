@@ -38,8 +38,8 @@ nonisolated struct ProviderClient: Sendable {
 
     func makeAudioRequest(audio: Data, editing selectedText: String? = nil) throws -> URLRequest {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
-        guard settings.provider == .openRouter else { throw ProviderError.unsupportedProvider }
-        guard !settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard settings.provider.supportsAudioRequests else { throw ProviderError.unsupportedProvider }
+        guard !settings.provider.requestModelID(settings.model).isEmpty else {
             throw ProviderError.missingProcessingModel
         }
         let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
@@ -48,7 +48,9 @@ nonisolated struct ProviderClient: Sendable {
         request.timeoutInterval = 40
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
+        if settings.provider == .openRouter {
+            request.setValue("ChatterKey", forHTTPHeaderField: "X-OpenRouter-Title")
+        }
 
         var content: [AudioChatRequest.Content] = []
         if isEditing(selectedText), let selectedText {
@@ -56,14 +58,15 @@ nonisolated struct ProviderClient: Sendable {
         }
         content.append(.audio(data: audio.base64EncodedString(), format: "wav"))
         let body = AudioChatRequest(
-            model: settings.model,
+            model: settings.provider.requestModelID(settings.model),
             messages: [
                 .init(role: "system", content: [.text(processingPrompt(editing: selectedText))]),
                 .init(role: "user", content: content)
             ],
             maxTokens: 16_384,
-            reasoning: .init(effort: "low"),
-            provider: .init(sort: "latency", allowFallbacks: false)
+            reasoning: settings.provider == .openRouter ? .init(effort: "low") : nil,
+            reasoningEffort: settings.provider == .google ? "low" : nil,
+            provider: settings.provider == .openRouter ? .init(sort: "latency", allowFallbacks: false) : nil
         )
         request.httpBody = try JSONEncoder().encode(body)
         return request
@@ -95,7 +98,7 @@ nonisolated struct ProviderClient: Sendable {
 
     func testConnection() async throws {
         guard !apiKey.isEmpty else { throw ProviderError.missingAPIKey }
-        guard settings.provider == .openRouter else { throw ProviderError.unsupportedProvider }
+        guard settings.provider.supportsAudioRequests else { throw ProviderError.unsupportedProvider }
         let baseURL = try ProviderEndpointPolicy.baseURL(for: settings)
         var request = URLRequest(url: baseURL.appendingPathComponent("models"))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -227,12 +230,14 @@ private nonisolated struct AudioChatRequest: Encodable {
     let model: String
     let messages: [Message]
     let maxTokens: Int
-    let reasoning: Reasoning
-    let provider: ProviderPreference
+    let reasoning: Reasoning?
+    let reasoningEffort: String?
+    let provider: ProviderPreference?
 
     enum CodingKeys: String, CodingKey {
         case model, messages, reasoning, provider
         case maxTokens = "max_tokens"
+        case reasoningEffort = "reasoning_effort"
     }
 }
 
@@ -265,7 +270,7 @@ nonisolated enum ProviderError: LocalizedError {
         switch self {
         case .missingAPIKey: "Settings mein provider API key add karein."
         case .missingProcessingModel: "Choose an audio-capable model in Settings."
-        case .unsupportedProvider: "Use an OpenRouter API key for the single-model audio workflow."
+        case .unsupportedProvider: "Choose Google Direct or OpenRouter for the single-model audio workflow."
         case .truncatedResponse: "The model output was cut off. Try a shorter recording or selection."
         case .invalidBaseURL: "The provider base URL is invalid."
         case .invalidResponse: "The provider returned an invalid response."

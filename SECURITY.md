@@ -13,8 +13,8 @@ Please use GitHub Security Advisories to report vulnerabilities privately. Do no
 
 ## Provider endpoint safety
 
-- Processing requests are pinned to the official OpenRouter API host so a modified preference cannot redirect the API key elsewhere.
-- Legacy OpenAI/custom provider configurations are not accepted by the single-model client. Migration never copies their API keys to OpenRouter.
+- Processing requests are pinned to the selected connection’s official host: `generativelanguage.googleapis.com` for Google Direct and `openrouter.ai` for OpenRouter. A modified base URL preference cannot redirect a provider key elsewhere.
+- Legacy OpenAI/custom provider configurations are not accepted by the single-model client. Migration and connection switching never copy API keys between Google, OpenRouter, or legacy provider accounts.
 - Provider redirects are rejected.
 - The selected model receives audio, prompts, and any selected text used by Magic Voice Edit in one request. Only use models and hosting providers you trust.
 
