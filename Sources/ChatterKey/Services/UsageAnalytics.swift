@@ -7,7 +7,6 @@ nonisolated enum UsageAnalytics {
 
     static func estimatedCost(
         durationSeconds: Double,
-        spokenText: String,
         finalText: String,
         settings: ProviderSettings,
         selectedText: String? = nil
@@ -35,9 +34,9 @@ nonisolated enum UsageAnalytics {
             }
         }
 
-        let repeated = repeatedPhrase(in: words)
+        let repeated = repeatedPhraseCount(in: words)
         if let repeated, results.count < 3 {
-            results.append("“\(repeated.phrase)” appeared \(repeated.count) times. State it once, then continue with the next point.")
+            results.append("A two-word phrase appeared \(repeated) times. State it once, then continue with the next point.")
         }
 
         let punctuationCount = text.filter { ".?!".contains($0) }.count
@@ -65,7 +64,7 @@ nonisolated enum UsageAnalytics {
         }
     }
 
-    private static func repeatedPhrase(in words: [String]) -> (phrase: String, count: Int)? {
+    private static func repeatedPhraseCount(in words: [String]) -> Int? {
         guard words.count >= 6 else { return nil }
         let ignored = Set(["the", "and", "that", "this", "with", "have", "will", "your", "you", "for", "but", "are", "was", "hai", "ke", "ki", "ka"])
         var counts: [String: Int] = [:]
@@ -74,7 +73,7 @@ nonisolated enum UsageAnalytics {
             guard !ignored.contains(words[index]), !ignored.contains(words[index + 1]) else { continue }
             counts[pair, default: 0] += 1
         }
-        guard let match = counts.max(by: { $0.value < $1.value }), match.value >= 2 else { return nil }
-        return (match.key, match.value)
+        guard let count = counts.values.max(), count >= 2 else { return nil }
+        return count
     }
 }

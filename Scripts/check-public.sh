@@ -3,17 +3,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 failed=0
-scan_paths=(Package.swift README.md LICENSE PRIVACY.md SECURITY.md Scripts Sources .env.example .gitignore)
+scan_paths=(Package.swift README.md CHANGELOG.md DISTRIBUTION.md docs LICENSE PRIVACY.md SECURITY.md Scripts Sources .env.example .gitignore)
 
-if grep -RInE \
+if grep -RInIE \
   --exclude='check-public.sh' \
-  '(sk-or-|sk-proj-|sk-[A-Za-z0-9_-]{20,}|/Users/[^/]+/|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|api[_ -]?key[[:space:]]*=[[:space:]]*[^[:space:]]+)' \
+  '(AIza[0-9A-Za-z_-]{35}|sk-or-|sk-proj-|sk-[A-Za-z0-9_-]{20,}|/Users/[^/]+/|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|api[_ -]?key[[:space:]]*=[[:space:]]*[^[:space:]]+)' \
   "${scan_paths[@]}"; then
   echo "Potential secret or personal path found."
   failed=1
 fi
 
-if grep -RInE --exclude='check-public.sh' '(Himanshu|himanshu|Mittal|mittal)' "${scan_paths[@]}"; then
+if grep -RInIE --exclude='check-public.sh' '(Himanshu|himanshu|Mittal|mittal)' "${scan_paths[@]}"; then
   echo "Potential personal name found."
   failed=1
 fi

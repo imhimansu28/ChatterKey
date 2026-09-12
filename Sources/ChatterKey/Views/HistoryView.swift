@@ -4,7 +4,11 @@ struct HistoryView: View {
     @EnvironmentObject private var appState: AppState
     var embedded = false
 
-    @ViewBuilder var body: some View {
+    var body: some View {
+        historyContent.onAppear { appState.refreshHistory() }
+    }
+
+    @ViewBuilder private var historyContent: some View {
         if embedded {
             embeddedContent
         } else {
@@ -130,6 +134,7 @@ struct HistoryView: View {
                 Image(systemName: "arrow.turn.down.left")
             }
             .help("Insert in the focused app")
+            .disabled(appState.phase == .listening || appState.phase == .processing)
         }
         .padding(14)
         .background(

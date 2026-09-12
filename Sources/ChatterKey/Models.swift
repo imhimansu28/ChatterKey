@@ -300,6 +300,15 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         costRates = saved?.costRates ?? .geminiFlashLite
     }
 
+    mutating func validate() throws {
+        guard provider.supportsAudioRequests else { throw ProviderError.unsupportedProvider }
+        model = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !provider.requestModelID(model).isEmpty else { throw ProviderError.missingProcessingModel }
+        let rates = [costRates.audioPerMillionTokens, costRates.inputPerMillionTokens, costRates.outputPerMillionTokens]
+        guard rates.allSatisfy({ $0.isFinite && $0 >= 0 }) else { throw ProviderError.invalidCostRates }
+        baseURL = provider.defaultBaseURL
+    }
+
     private enum CodingKeys: String, CodingKey {
         case provider, baseURL, model, polishModel, systemPrompt, costRates, connectionModels
         case smartPolish, preserveHinglish
@@ -361,11 +370,11 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         try values.encode(historyRetentionDays, forKey: .historyRetentionDays)
     }
 
-    static func load() -> ProviderSettings {
-        let defaults = UserDefaults.standard
+    static func load(defaults: UserDefaults = .standard) -> ProviderSettings {
         var value: ProviderSettings
-        if let data = defaults.data(forKey: storageKey),
-           let decoded = try? JSONDecoder().decode(Self.self, from: data) {
+        if let data = defaults.data(forKey: storageKey) {
+            // Preserve unreadable settings for recovery instead of overwriting them.
+            guard let decoded = try? JSONDecoder().decode(Self.self, from: data) else { return ProviderSettings() }
             value = decoded
         } else {
             value = ProviderSettings()
@@ -373,10 +382,9 @@ nonisolated struct ProviderSettings: Codable, Sendable {
 
         if !defaults.bool(forKey: starterContentMigrationKey) {
             value.addStarterContent()
-            value.save()
             defaults.set(true, forKey: starterContentMigrationKey)
         }
-        value.save() // Persist the single-model migration, including removal of obsolete keys.
+        value.save(defaults: defaults) // Persist the single-model migration, including removal of obsolete keys.
         return value
     }
 
@@ -392,9 +400,9 @@ nonisolated struct ProviderSettings: Codable, Sendable {
         })
     }
 
-    func save() {
+    func save(defaults: UserDefaults = .standard) {
         if let data = try? JSONEncoder().encode(self) {
-            UserDefaults.standard.set(data, forKey: Self.storageKey)
+            defaults.set(data, forKey: Self.storageKey)
         }
     }
 }
@@ -403,6 +411,6 @@ nonisolated enum DictationPhase: Equatable, Sendable {
     case idle
     case listening
     case processing
-    case inserted
+    case pasteSent
     case failed(String)
 }

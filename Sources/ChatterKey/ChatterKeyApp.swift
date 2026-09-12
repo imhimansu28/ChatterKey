@@ -34,6 +34,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        AppState.shared.cancel()
+        AppState.shared.hotkey.stop()
+    }
+
     func applicationDidBecomeActive(_ notification: Notification) {
         AppState.shared.refreshPermissions()
     }

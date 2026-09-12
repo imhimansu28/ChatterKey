@@ -11,7 +11,7 @@ nonisolated struct ProviderClient: Sendable {
         transport: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = { try await ProviderClient.requestData(for: $0) }
     ) {
         self.settings = settings
-        self.apiKey = apiKey
+        self.apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         self.transport = transport
     }
 
@@ -29,11 +29,11 @@ nonisolated struct ProviderClient: Sendable {
         guard choice.finishReason != "content_filter", let content = choice.message.content else {
             throw ProviderError.invalidResponse
         }
-        let output = sanitize(content)
-        guard !output.isEmpty else { throw ProviderError.invalidResponse }
-        // Editing must not expand snippets or reinterpret commands in the selected document.
-        if isEditing(selectedText) { return output }
-        return VoiceTextProcessor.process(output, settings: settings)
+        // Quotes and Markdown can be document content, especially in edits and
+        // Verbatim mode. Do not strip them with speculative wrapper heuristics.
+        let final = isEditing(selectedText) ? content : VoiceTextProcessor.process(content, settings: settings)
+        guard !final.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ProviderError.invalidResponse }
+        return final
     }
 
     func makeAudioRequest(audio: Data, editing selectedText: String? = nil) throws -> URLRequest {
@@ -169,23 +169,6 @@ nonisolated struct ProviderClient: Sendable {
         """
     }
 
-    private func sanitize(_ value: String) -> String {
-        var output = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        if output.hasPrefix("```") {
-            let lines = output.components(separatedBy: .newlines)
-            output = lines.dropFirst().drop(while: { $0.trimmingCharacters(in: .whitespaces).isEmpty })
-                .joined(separator: "\n")
-        }
-        output = output.replacingOccurrences(of: "```", with: "")
-        output = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        if output.count >= 2,
-           (output.hasPrefix("\"") && output.hasSuffix("\"") || output.hasPrefix("“") && output.hasSuffix("”")) {
-            output.removeFirst()
-            output.removeLast()
-        }
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     private func validate(response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else { throw ProviderError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
@@ -261,7 +244,7 @@ nonisolated enum ProviderError: LocalizedError {
     case missingProcessingModel
     case unsupportedProvider
     case truncatedResponse
-    case invalidBaseURL
+    case invalidCostRates
     case invalidResponse
     case timedOut
     case api(String)
@@ -272,7 +255,7 @@ nonisolated enum ProviderError: LocalizedError {
         case .missingProcessingModel: "Choose an audio-capable model in Settings."
         case .unsupportedProvider: "Choose Google Direct or OpenRouter for the single-model audio workflow."
         case .truncatedResponse: "The model output was cut off. Try a shorter recording or selection."
-        case .invalidBaseURL: "The provider base URL is invalid."
+        case .invalidCostRates: "Cost rates must be finite, non-negative numbers."
         case .invalidResponse: "The provider returned an invalid response."
         case .timedOut: "Processing took too long. Please retry."
         case .api(let message): message

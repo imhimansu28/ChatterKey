@@ -9,6 +9,13 @@ struct MainPopoverView: View {
             Divider().opacity(0.55)
             VStack(alignment: .leading, spacing: 14) {
                 if !appState.setupComplete { setupCard } else { readyCard }
+                if case .failed(let message) = appState.phase {
+                    Text(message)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 transcriptSection
             }
             .padding(16)
@@ -16,7 +23,10 @@ struct MainPopoverView: View {
             footer
         }
         .frame(width: 390)
-        .onAppear { appState.refreshPermissions() }
+        .onAppear {
+            appState.refreshPermissions()
+            appState.refreshHistory()
+        }
     }
 
     private var header: some View {
@@ -161,7 +171,6 @@ struct MainPopoverView: View {
         HStack(spacing: 8) {
             FooterActionButton(title: "Diagnostics", systemImage: "stethoscope") {
                 SettingsWindowController.shared.show(appState: appState, section: .diagnostics)
-                appState.runDiagnostics()
             }
             Spacer(minLength: 8)
             FooterActionButton(title: "Settings", systemImage: "gearshape") {
@@ -195,7 +204,7 @@ struct MainPopoverView: View {
         case .idle: "Ready"
         case .listening: "Listening"
         case .processing: "Processing"
-        case .inserted: "Done"
+        case .pasteSent: "Paste sent"
         case .failed: "Needs attention"
         }
     }
@@ -203,7 +212,8 @@ struct MainPopoverView: View {
     private var statusColor: Color {
         if !appState.setupComplete { return .orange }
         return switch appState.phase {
-        case .idle, .inserted: .green
+        case .idle: .green
+        case .pasteSent: .indigo
         case .listening: .red
         case .processing: .indigo
         case .failed: .orange

@@ -24,8 +24,10 @@ final class AppState: ObservableObject {
     let recorder = AudioRecorder()
     let hotkey = GlobalHotkey()
     private var processingTask: Task<Void, Never>?
+    private var failureDismissTask: Task<Void, Never>?
     private var retryAudioURL: URL?
-    private var selectedTextForEdit: String?
+    private var selectionTask: Task<String?, Error>?
+    private var insertionTarget: TextSelectionReader.Target?
     private var apiKeyCache: [AIProvider: String] = [:]
     private var loadedAPIKeyProviders: Set<AIProvider> = []
 
@@ -48,13 +50,16 @@ final class AppState: ObservableObject {
 
     var hasAPIKey: Bool { !apiKey(for: settings.provider).isEmpty }
     var setupComplete: Bool { accessibilityGranted && microphoneGranted && hotkeyReady && hasAPIKey }
-    var canRetry: Bool { retryAudioURL != nil && phase != .processing }
+    var canRetry: Bool {
+        if case .failed = phase { return retryAudioURL != nil }
+        return false
+    }
 
     func apiKey(for provider: AIProvider) -> String {
         if loadedAPIKeyProviders.contains(provider) {
             return apiKeyCache[provider] ?? ""
         }
-        let value = KeychainStore.read(account: provider.rawValue)
+        let value = KeychainStore.read(account: provider.rawValue).trimmingCharacters(in: .whitespacesAndNewlines)
         loadedAPIKeyProviders.insert(provider)
         apiKeyCache[provider] = value
         return value
@@ -99,6 +104,7 @@ final class AppState: ObservableObject {
     }
 
     func runDiagnostics() {
+        guard !diagnosticsRunning else { return }
         diagnosticsRunning = true
         refreshPermissions()
         diagnostics = localDiagnostics() + [
@@ -119,7 +125,13 @@ final class AppState: ObservableObject {
                     result = DiagnosticItem(id: "provider", title: "Provider connection", state: .failed, detail: error.localizedDescription)
                 }
             }
-            diagnostics = localDiagnostics() + [result]
+            if settings.provider == currentSettings.provider && apiKey(for: currentSettings.provider) == key {
+                diagnostics = localDiagnostics() + [result]
+            } else {
+                diagnostics = localDiagnostics() + [
+                    DiagnosticItem(id: "provider", title: "Provider connection", state: .failed, detail: "Connection changed. Run diagnostics again.")
+                ]
+            }
             diagnosticsRunning = false
         }
     }
@@ -143,16 +155,26 @@ final class AppState: ObservableObject {
         }
 
         processingTask?.cancel()
+        failureDismissTask?.cancel()
+        selectionTask?.cancel()
         removeRetryAudio()
         liveTranscript = ""
-        selectedTextForEdit = TextSelectionReader.selectedText()
-        magicEditActive = selectedTextForEdit != nil
+        magicEditActive = false
+        insertionTarget = TextSelectionReader.target()
         do {
             try recorder.start(liveTranscription: settings.liveTranscriptionEnabled) { [weak self] text in
                 guard let self, self.phase == .listening else { return }
                 self.liveTranscript = text
             }
             phase = .listening
+            let target = insertionTarget
+            selectionTask = Task { [weak self] in
+                guard let target else { return nil }
+                let text = try await TextSelectionReader.selectedText(in: target)
+                try Task.checkCancellation()
+                self?.magicEditActive = text != nil
+                return text
+            }
             OverlayController.shared.show(appState: self)
         } catch {
             fail(error.localizedDescription)
@@ -162,6 +184,7 @@ final class AppState: ObservableObject {
     func finishDictation() {
         guard phase == .listening else { return }
         guard let url = recorder.stop() else {
+            selectionTask?.cancel()
             fail("The recording could not be prepared for transcription. Please retry.")
             return
         }
@@ -170,18 +193,21 @@ final class AppState: ObservableObject {
     }
 
     func retryLastDictation() {
-        guard let retryAudioURL else { return }
+        guard canRetry, let retryAudioURL else { return }
         processAudio(at: retryAudioURL, spokenDraft: liveTranscript)
     }
 
     func cancel() {
         processingTask?.cancel()
+        failureDismissTask?.cancel()
+        selectionTask?.cancel()
+        selectionTask = nil
         recorder.cancel()
         removeRetryAudio()
         phase = .idle
         liveTranscript = ""
         magicEditActive = false
-        selectedTextForEdit = nil
+        insertionTarget = nil
         OverlayController.shared.hide()
     }
 
@@ -196,13 +222,36 @@ final class AppState: ObservableObject {
     }
 
     func insert(_ item: DictationHistoryItem) {
-        do {
-            try TextInserter.insert(item.text)
-            lastTranscript = item.text
-        } catch {
+        guard phase != .listening && phase != .processing else { return }
+        guard let target = TextSelectionReader.target() else {
             copy(item.text)
-            fail("Automatic paste failed. The transcript was copied to your clipboard.")
+            fail("No target app is focused. The transcript was copied to your clipboard.")
+            return
         }
+        processingTask?.cancel()
+        selectionTask?.cancel()
+        selectionTask = nil
+        insertionTarget = nil
+        removeRetryAudio()
+        phase = .processing
+        processingTask = Task {
+            do {
+                try await TextInserter.insert(item.text, into: target)
+                try Task.checkCancellation()
+                lastTranscript = item.text
+                phase = .idle
+            } catch {
+                guard !Task.isCancelled else { return }
+                copy(item.text)
+                fail("\(error.localizedDescription) The transcript was copied to your clipboard.")
+            }
+        }
+    }
+
+    func refreshHistory() {
+        history = settings.historyEnabled
+            ? HistoryStore.load(retentionDays: settings.historyRetentionDays)
+            : []
     }
 
     func clearHistory() {
@@ -232,6 +281,9 @@ final class AppState: ObservableObject {
     }
 
     func saveSettings(_ newValue: ProviderSettings, apiKey: String) throws {
+        var newValue = newValue
+        try newValue.validate()
+        let apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let provider = newValue.provider
         let previousValue = self.apiKey(for: provider)
         if apiKey.isEmpty {
@@ -262,10 +314,13 @@ final class AppState: ObservableObject {
         OverlayController.shared.show(appState: self)
         let currentSettings = settings
         let key = apiKey(for: currentSettings.provider)
-        let editingText = selectedTextForEdit
-
+        let selectionTask = selectionTask
+        let target = insertionTarget
+        processingTask?.cancel()
         processingTask = Task {
             do {
+                let editingText = try await selectionTask?.value
+                try Task.checkCancellation()
                 let final = try await ProviderClient(settings: currentSettings, apiKey: key).process(
                     audioURL: url,
                     editing: editingText
@@ -280,30 +335,38 @@ final class AppState: ObservableObject {
                     selectedText: editingText
                 )
                 do {
-                    try TextInserter.insert(final)
+                    guard let target else { throw InsertError.targetChanged }
+                    try await TextInserter.insert(final, into: target, replacing: editingText)
+                    try Task.checkCancellation()
                 } catch {
+                    guard !Task.isCancelled else { return }
                     copy(final)
                     addHistory(final, mode: currentSettings.outputMode)
                     removeRetryAudio()
-                    fail("Automatic paste failed. The transcript was copied to your clipboard.")
+                    self.selectionTask = nil
+                    magicEditActive = false
+                    fail("\(error.localizedDescription) The transcript was copied to your clipboard.")
                     return
                 }
                 addHistory(final, mode: currentSettings.outputMode)
-                phase = .inserted
+                phase = .pasteSent
                 removeRetryAudio()
-                try? await Task.sleep(for: .milliseconds(900))
-                if phase == .inserted {
+                try await Task.sleep(for: .milliseconds(900))
+                if phase == .pasteSent {
                     phase = .idle
                     liveTranscript = ""
                     magicEditActive = false
-                    selectedTextForEdit = nil
+                    self.selectionTask = nil
+                    insertionTarget = nil
                     OverlayController.shared.hide()
                 }
-            } catch is CancellationError {
-                removeRetryAudio()
             } catch {
-                // Keep the temporary audio for an explicit Retry. It is removed
-                // on success, cancellation, a new recording, or next launch.
+                // Cancellation cleanup belongs to cancel/new-recording, not an
+                // old task that could otherwise delete the next attempt's audio.
+                guard !Task.isCancelled else { return }
+                if error is SelectionError { removeRetryAudio() }
+                // Provider failures retain audio for explicit Retry; local
+                // selection failures require a new recording and selection.
                 fail(error.localizedDescription)
             }
         }
@@ -331,7 +394,6 @@ final class AppState: ObservableObject {
             audioDurationSeconds: duration,
             estimatedCostUSD: UsageAnalytics.estimatedCost(
                 durationSeconds: duration,
-                spokenText: source,
                 finalText: finalText,
                 settings: settings,
                 selectedText: selectedText
@@ -345,6 +407,7 @@ final class AppState: ObservableObject {
 
     private func addHistory(_ text: String, mode: OutputMode) {
         guard settings.historyEnabled else { return }
+        history = HistoryStore.pruned(history, retentionDays: settings.historyRetentionDays)
         history.insert(DictationHistoryItem(text: text, createdAt: Date(), outputMode: mode), at: 0)
         history = Array(history.prefix(50))
         HistoryStore.save(history)
@@ -395,8 +458,9 @@ final class AppState: ObservableObject {
         phase = .failed(message)
         OverlayController.shared.show(appState: self)
 
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(3))
+        failureDismissTask?.cancel()
+        failureDismissTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(3)) } catch { return }
             guard let self, self.phase == .failed(message) else { return }
             OverlayController.shared.hide()
         }

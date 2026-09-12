@@ -6,7 +6,7 @@ ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey 
 
 - Provider API keys are stored in macOS Keychain.
 - Preferences such as provider, model ID, processing options, vocabulary, snippets, and custom system instructions are stored in `UserDefaults`.
-- Dashboard records store local aggregate metadata such as date, provider/model names, word count, audio duration, estimated cost, and generated speaking suggestions. They do not store transcript text or audio.
+- Dashboard records store local aggregate metadata such as date, provider/model names, word count, audio duration, estimated cost, and generated speaking suggestions. New suggestions do not quote arbitrary transcript phrases, and no audio is stored there. Older versions may have saved short repeated phrases inside suggestions; use **Dashboard → Clear Usage** to remove existing records.
 - The last transcript exists in app memory for recovery and is not written to the repository or a project server.
 - ChatterKey temporarily uses the clipboard to paste generated text and, when Accessibility selection attributes are unavailable, to try copying the selection at the start of dictation. It attempts to restore the previous clipboard contents. Selection behavior depends on the focused app.
 
@@ -18,7 +18,7 @@ The app pins Google Direct to `generativelanguage.googleapis.com` and OpenRouter
 
 ## Temporary audio
 
-Audio is recorded to a temporary local WAV file. ChatterKey deletes it after a successful request or cancellation. After a processing failure, it may retain the file temporarily for an explicit retry; it is removed after retry success, cancellation, a new recording, or the next app launch.
+Audio is captured in a temporary local CAF file and converted to a 16 kHz mono WAV file in bounded chunks. ChatterKey deletes it after a successful request or cancellation. After a processing failure, it may retain the file temporarily for an explicit retry; it is removed after retry success, cancellation, a new recording, app exit, or the next app launch.
 
 ## Permissions
 

@@ -33,9 +33,18 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func insert(_ item: DictationHistoryItem, appState: AppState) {
+        guard appState.phase != .listening && appState.phase != .processing else { return }
+        guard let previousApp, !previousApp.isTerminated else {
+            appState.copy(item.text)
+            return
+        }
         window?.orderOut(nil)
-        previousApp?.activate(options: [.activateAllWindows])
+        previousApp.activate(options: [.activateAllWindows])
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == previousApp.processIdentifier else {
+                appState.copy(item.text)
+                return
+            }
             appState.insert(item)
         }
     }

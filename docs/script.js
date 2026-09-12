@@ -6,7 +6,6 @@ if ('IntersectionObserver' in window && !reduceMotion) {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
       entry.target.classList.add('visible');
-      entry.target.classList.remove('reveal-pending');
       revealObserver.unobserve(entry.target);
     });
   }, { threshold: 0.12 });

@@ -2,7 +2,7 @@ import Foundation
 
 nonisolated enum VoiceTextProcessor {
     static func process(_ text: String, settings: ProviderSettings) -> String {
-        guard settings.outputMode != .verbatim else { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard settings.outputMode != .verbatim else { return text }
         var output = text
         if settings.spokenCommandsEnabled {
             output = applyCommands(to: output)
@@ -35,15 +35,27 @@ nonisolated enum VoiceTextProcessor {
     }
 
     private static func applySnippets(to text: String, snippets: [VoiceSnippet]) -> String {
-        snippets
-            .filter {
-                !$0.cue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                !$0.content.isEmpty
+        let entries = snippets.filter {
+            !$0.cue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.content.isEmpty
+        }.sorted { $0.cue.count > $1.cue.count }
+        guard !entries.isEmpty else { return text }
+        let alternatives = entries.map { NSRegularExpression.escapedPattern(for: $0.cue.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        guard let expression = try? NSRegularExpression(
+            pattern: "(?i)(?<![\\p{L}\\p{N}_])(?:\(alternatives.joined(separator: "|")))(?![\\p{L}\\p{N}_])"
+        ) else { return text }
+        let original = text as NSString
+        let matches = expression.matches(in: text, range: NSRange(location: 0, length: original.length))
+        let result = NSMutableString(string: text)
+        // Match the original once so expanded content remains literal.
+        for match in matches.reversed() {
+            let cue = original.substring(with: match.range)
+            if let entry = entries.first(where: {
+                $0.cue.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(cue) == .orderedSame
+            }) {
+                result.replaceCharacters(in: match.range, with: entry.content)
             }
-            .sorted { $0.cue.count > $1.cue.count }
-            .reduce(text) { result, snippet in
-                replacePhrase(snippet.cue, with: snippet.content, in: result)
-            }
+        }
+        return result as String
     }
 
     private static func replacePhrase(_ phrase: String, with replacement: String, in text: String) -> String {

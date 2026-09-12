@@ -9,6 +9,7 @@ final class GlobalHotkey {
     private var runLoopSource: CFRunLoopSource?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var callbackGeneration = 0
     private var isPressed = false
     private var usedWithAnotherKey = false
     private var shortcut: HotkeyShortcut = .function
@@ -20,7 +21,9 @@ final class GlobalHotkey {
     var isAccessibilityGranted: Bool { AXIsProcessTrusted() }
 
     func configure(_ newShortcut: HotkeyShortcut) {
-        if shortcut != newShortcut, isPressed {
+        guard shortcut != newShortcut else { return }
+        callbackGeneration &+= 1
+        if isPressed {
             isPressed = false
             usedWithAnotherKey = false
             onCancel?()
@@ -35,7 +38,6 @@ final class GlobalHotkey {
 
     @discardableResult
     func start() -> Bool {
-        installFallbackMonitors()
         guard eventTap == nil else { return true }
         let mask = (1 << CGEventType.flagsChanged.rawValue)
             | (1 << CGEventType.keyDown.rawValue)
@@ -62,9 +64,12 @@ final class GlobalHotkey {
             },
             userInfo: pointer
         ) else {
-            return globalMonitor != nil || localMonitor != nil
+            installFallbackMonitors()
+            return isAccessibilityGranted && globalMonitor != nil
+                && (shortcut == .function || shortcut == .rightOption)
         }
 
+        removeFallbackMonitors()
         eventTap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         if let runLoopSource {
@@ -74,13 +79,19 @@ final class GlobalHotkey {
         return true
     }
 
-    private func handleCGEvent(type: CGEventType, event: CGEvent) -> Bool {
-        if event.getIntegerValueField(.eventSourceUserData) == TextSelectionReader.syntheticCopyEventTag {
+    func handleCGEvent(type: CGEventType, event: CGEvent) -> Bool {
+        if event.getIntegerValueField(.eventSourceUserData) == TextSelectionReader.syntheticTextEventTag {
             return false
         }
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
         let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) == 1
+        // Space-up may no longer contain the shortcut's modifier flags.
+        if type == .keyUp, keyCode == 49, isPressed,
+           shortcut == .optionSpace || shortcut == .commandShiftSpace {
+            finishPress()
+            return true
+        }
 
         switch shortcut {
         case .function:
@@ -116,7 +127,7 @@ final class GlobalHotkey {
                 let optionDown = event.modifierFlags.contains(.option)
                 let keyCode = event.keyCode
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, self.eventTap == nil else { return }
                     if self.shortcut == .function {
                         self.handleModifier(isDown: fnDown)
                     } else if self.shortcut == .rightOption, keyCode == 61 {
@@ -131,7 +142,7 @@ final class GlobalHotkey {
                 let optionDown = event.modifierFlags.contains(.option)
                 let keyCode = event.keyCode
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, self.eventTap == nil else { return }
                     if self.shortcut == .function {
                         self.handleModifier(isDown: fnDown)
                     } else if self.shortcut == .rightOption, keyCode == 61 {
@@ -147,7 +158,7 @@ final class GlobalHotkey {
         if isDown, !isPressed {
             isPressed = true
             usedWithAnotherKey = false
-            onPress?()
+            enqueue(onPress, requireCurrentGeneration: true)
         } else if !isDown, isPressed {
             finishPress()
         }
@@ -157,7 +168,7 @@ final class GlobalHotkey {
         if type == .keyDown, !isRepeat, !isPressed {
             isPressed = true
             usedWithAnotherKey = false
-            onPress?()
+            enqueue(onPress, requireCurrentGeneration: true)
         } else if type == .keyUp, isPressed {
             finishPress()
         }
@@ -165,11 +176,47 @@ final class GlobalHotkey {
 
     private func finishPress() {
         isPressed = false
-        if usedWithAnotherKey { onCancel?() } else { onRelease?() }
+        let completion = usedWithAnotherKey ? onCancel : onRelease
         usedWithAnotherKey = false
+        enqueue(completion)
+    }
+
+    func stop() {
+        callbackGeneration &+= 1
+        if let runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
+        if let eventTap { CFMachPortInvalidate(eventTap) }
+        eventTap = nil
+        runLoopSource = nil
+        removeFallbackMonitors()
+        if isPressed {
+            isPressed = false
+            usedWithAnotherKey = false
+            onCancel?()
+        }
+    }
+
+    private func removeFallbackMonitors() {
+        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+        globalMonitor = nil
+        localMonitor = nil
+    }
+
+    private func enqueue(_ callback: (() -> Void)?, requireCurrentGeneration: Bool = false) {
+        let generation = callbackGeneration
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !requireCurrentGeneration || self.callbackGeneration == generation else { return }
+            callback?()
+        }
     }
 
     private func reenableEventTap() {
+        callbackGeneration &+= 1
+        if isPressed {
+            isPressed = false
+            usedWithAnotherKey = false
+            enqueue(onCancel)
+        }
         if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
     }
 }

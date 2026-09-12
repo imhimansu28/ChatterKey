@@ -7,14 +7,14 @@
   <meta name="description" content="Turn natural speech into polished, ready-to-use text anywhere on your Mac. ChatterKey is a native, open-source AI voice typing utility using one configurable audio model through Google Direct or OpenRouter.">
   <meta name="theme-color" content="#f7f6f2">
   <meta property="og:title" content="ChatterKey — Your voice, polished into text">
-  <meta property="og:description" content="Hold a shortcut, speak naturally, and insert ready-to-use English in any Mac app.">
+  <meta property="og:description" content="Hold a shortcut, speak naturally, and insert ready-to-use text in supported Mac text fields.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://imhimansu28.github.io/ChatterKey/">
   <meta property="og:image" content="https://imhimansu28.github.io/ChatterKey/assets/chatterkey-hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/app-icon.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/app-icon.png">
-  <link rel="stylesheet" href="styles.css?v=20260908-450">
+  <link rel="stylesheet" href="styles.css?v=f7fe9b9e8aa7">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -23,9 +23,9 @@
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS 14 or later",
     "description": "AI voice typing for macOS that turns natural speech into polished, ready-to-use text.",
-    "softwareVersion": "4.6.0",
+    "softwareVersion": "4.6.1",
     "license": "https://opensource.org/license/mit",
-    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip"
+    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip"
   }
   </script>
 </head>
@@ -48,7 +48,7 @@
       <a href="#privacy">Privacy</a>
       <a href="https://github.com/imhimansu28/ChatterKey/blob/main/CHANGELOG.md">Changelog</a>
     </nav>
-    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0">Download <span>v4.6.0</span></a>
+    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip" aria-label="Download ChatterKey version 4.6.1">Download <span>v4.6.1</span></a>
   </header>
 
   <main id="top">
@@ -56,12 +56,12 @@
       <div class="hero-copy reveal">
         <div class="eyebrow"><span class="status-dot"></span> Native AI voice typing for macOS</div>
         <h1>Your voice.<br><em>Polished into text.</em></h1>
-        <p class="hero-lead">Hold a shortcut and turn your voice into polished text in any Mac app, using your Gemini API key directly or an optional OpenRouter connection, with personal vocabulary and voice snippets built in.</p>
+        <p class="hero-lead">Hold a shortcut and turn your voice into polished text in supported Mac text fields, using your Gemini API key directly or an optional OpenRouter connection, with personal vocabulary and voice snippets built in.</p>
         <a class="release-badge" href="https://github.com/imhimansu28/ChatterKey/releases/latest">
-          <span>New in v4.6.0</span><strong>Use your Gemini API key directly. OpenRouter optional.</strong><b>→</b>
+          <span>New in v4.6.1</span><strong>Selection fixes. Safer clipboard and shortcut handling.</strong><b>→</b>
         </a>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0 ZIP for macOS">
+          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip" aria-label="Download ChatterKey version 4.6.1 ZIP for macOS">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
             Download for macOS
           </a>
@@ -70,7 +70,7 @@
             View on GitHub
           </a>
         </div>
-        <p class="download-note">Apple Silicon · macOS 14+ · Ad-hoc signed community-test build, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0">Release notes &amp; SHA-256 checksum</a>.</p>
+        <p class="download-note">Apple Silicon · macOS 14+ · Ad-hoc signed community-test build, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.1">Release notes &amp; SHA-256 checksum</a>.</p>
         <div class="hero-proof">
           <span><b>⌨</b> Type in supported apps</span>
           <span><b>↗</b> Local usage dashboard</span>
@@ -89,7 +89,7 @@
 
     <section class="trust-strip" aria-label="Product principles">
       <div class="marquee">
-        <span>VOICE → POLISHED TEXT</span><i></i><span>ANY MAC APP</span><i></i><span>YOUR API KEY</span><i></i><span>ONE AUDIO MODEL</span><i></i><span>NO ANALYTICS</span><i></i><span>OPEN SOURCE</span>
+        <span>VOICE → POLISHED TEXT</span><i></i><span>SUPPORTED MAC APPS</span><i></i><span>YOUR API KEY</span><i></i><span>ONE AUDIO MODEL</span><i></i><span>NO ANALYTICS</span><i></i><span>OPEN SOURCE</span>
       </div>
     </section>
 
@@ -119,7 +119,7 @@
           <div class="step-number">03</div>
           <div class="step-icon success-icon">✓</div>
           <h3>Ready where you need it</h3>
-          <p>Polished text is inserted directly into Slack, Mail, Notion, VS Code, browsers, and more.</p>
+          <p>ChatterKey attempts to paste into the focused text field. Support depends on the app; read-only content cannot be replaced in place.</p>
           <div class="sample sample-output">Could you please rewrite this as a professional email?</div>
         </article>
       </div>
@@ -155,7 +155,7 @@
           <div class="feature-story-grid">
             <article class="feature-story reveal">
               <div class="feature-demo live-demo"><div class="demo-status"><img src="assets/app-icon.png" alt="" width="24" height="24"><span></span>Listening…</div><p>I’ll send the report<br>by end of day<span class="typing-cursor"></span></p></div>
-              <div class="feature-detail"><span class="feature-number">1</span><h3>Live transcription</h3><p>See every word as it’s spoken, then receive polished final text.</p></div>
+              <div class="feature-detail"><span class="feature-number">1</span><h3>Live transcription</h3><p>See a rough on-device preview when available, then receive polished final text.</p></div>
             </article>
             <article class="feature-story reveal delay-one">
               <div class="feature-demo edit-demo"><p>Let’s <mark>move this</mark> to next week.</p><div class="demo-arrow">↓</div><p>Let’s <strong>push this</strong> to next week.</p></div>
@@ -173,21 +173,21 @@
         </div>
 
         <div class="feature-extras reveal" aria-label="More ChatterKey features">
-          <span><b>↗</b> Cost & usage dashboard</span><span><b>◷</b> Local history</span><span><b>⌁</b> Custom AI prompts</span><span><b>Aa</b> Eight writing modes</span><span><b>↵</b> Spoken formatting</span><span><b>◌</b> One configurable model</span><span><b>⌘</b> Clipboard-safe insertion</span>
+          <span><b>↗</b> Cost & usage dashboard</span><span><b>◷</b> Local history</span><span><b>⌁</b> Custom AI prompts</span><span><b>Aa</b> Eight writing modes</span><span><b>↵</b> Spoken formatting</span><span><b>◌</b> One configurable model</span><span><b>⌘</b> Clipboard restoration</span>
         </div>
 
-        <div class="release-highlights reveal" aria-label="New in ChatterKey version 4.6.0">
+        <div class="release-highlights reveal" aria-label="New in ChatterKey version 4.6.1">
           <article>
             <span class="highlight-icon">↗</span>
-            <div><small>NEW IN 4.6</small><h3>Gemini, directly</h3><p>Use your own Gemini API key with Google Direct. New installs default to Gemini 3.5 Flash-Lite without OpenRouter.</p></div>
+            <div><small>NEW IN 4.6.1</small><h3>Selection reliability</h3><p>Nonblocking capture, corrected Accessibility fallbacks, and original-target checks improve voice editing in supported apps.</p></div>
           </article>
           <article>
             <span class="highlight-icon">⌁</span>
-            <div><small>NO HIDDEN CALLS</small><h3>You control Retry</h3><p>No separate transcription, polishing, repair, or automatic fallback requests. Retry only when you choose.</p></div>
+            <div><small>SAFER LIFECYCLE</small><h3>Clipboard &amp; shortcuts</h3><p>Serialized clipboard cleanup and corrected key releases reduce missed selections and stuck recordings. Retry remains explicit.</p></div>
           </article>
           <article>
             <span class="highlight-icon">◷</span>
-            <div><small>SEPARATE CONNECTIONS</small><h3>Your keys stay separate</h3><p>Switch connections without mixing API keys, models, or cost rates. Existing OpenRouter setups keep their working settings.</p></div>
+            <div><small>OUTPUT INTEGRITY</small><h3>Your text stays literal</h3><p>Preserve quotes and code, avoid recursive snippet expansion, and see honest paste feedback. Google and OpenRouter keys stay separate.</p></div>
           </article>
         </div>
       </div>
@@ -276,7 +276,7 @@
       <h2>Stop translating your thoughts.<br>Start expressing them.</h2>
       <p>Speak naturally. Write confidently—anywhere on your Mac.</p>
       <div class="hero-actions centered">
-        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0 ZIP for macOS">Download ChatterKey</a>
+        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip" aria-label="Download ChatterKey version 4.6.1 ZIP for macOS">Download ChatterKey</a>
         <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey">Explore the source</a>
       </div>
       <small>Free and open source · macOS 14+ · Bring your own API key</small>
@@ -295,6 +295,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=20260825-2"></script>
+  <script src="script.js?v=8d6711f4ff8c"></script>
 </body>
 </html>

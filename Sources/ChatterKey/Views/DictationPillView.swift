@@ -42,6 +42,8 @@ struct DictationPillView: View {
 
     private var showsText: Bool {
         switch appState.phase {
+        case .failed, .pasteSent:
+            return true
         case .listening, .processing:
             return appState.magicEditActive || !appState.liveTranscript.isEmpty
         default:
@@ -52,6 +54,8 @@ struct DictationPillView: View {
     private var pillWidth: CGFloat { showsText ? 340 : 66 }
 
     private var displayText: String {
+        if case .failed(let message) = appState.phase { return message }
+        if appState.phase == .pasteSent { return "Check the target app; Copy is available in the menu." }
         if !appState.liveTranscript.isEmpty { return appState.liveTranscript }
         if appState.magicEditActive {
             return appState.phase == .processing
@@ -62,6 +66,8 @@ struct DictationPillView: View {
     }
 
     private var statusLabel: String {
+        if case .failed = appState.phase { return "NEEDS ATTENTION" }
+        if appState.phase == .pasteSent { return "PASTE SENT" }
         if appState.magicEditActive { return "VOICE EDIT" }
         return appState.phase == .processing ? "POLISHING" : "LIVE TRANSCRIPT"
     }
@@ -72,8 +78,8 @@ struct DictationPillView: View {
             ListeningWaveformView()
         case .processing:
             ProcessingDotsView()
-        case .inserted:
-            CompletionCheckView()
+        case .pasteSent:
+            statusIcon("paperplane.fill", color: .indigo)
         case .failed:
             statusIcon("exclamationmark", color: .orange)
         case .idle:
@@ -88,7 +94,7 @@ struct DictationPillView: View {
         case .idle: "idle"
         case .listening: "listening"
         case .processing: "processing"
-        case .inserted: "inserted"
+        case .pasteSent: "pasteSent"
         case .failed: "failed"
         }
     }
@@ -148,24 +154,5 @@ private struct ProcessingDotsView: View {
         }
         .frame(width: 40, height: 28)
         .onAppear { animate = true }
-    }
-}
-
-private struct CompletionCheckView: View {
-    @State private var appeared = false
-
-    var body: some View {
-        Circle()
-            .fill(Color.green)
-            .frame(width: 29, height: 29)
-            .overlay(
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-            )
-            .scaleEffect(appeared ? 1 : 0.45)
-            .opacity(appeared ? 1 : 0)
-            .onAppear { appeared = true }
-            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: appeared)
     }
 }

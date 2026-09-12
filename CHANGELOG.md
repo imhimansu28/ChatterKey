@@ -6,6 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.6.1] - 2026-09-12
+
+### Fixed
+
+- Read selected text without blocking the hotkey event loop; handle empty Accessibility attributes, valid UTF-16 ranges, oversized selections, and known insertion points explicitly.
+- Serialize temporary clipboard operations, finish bounded clipboard cleanup after cancellation, and recheck the original app/field/selection before pasting. Clipboard restoration remains best-effort for unusually delayed external applications.
+- Handle Space release after shortcut modifiers are released; avoid duplicate fallback monitoring and stale queued shortcut callbacks.
+- Prevent cancelled requests from deleting a newer attempt's retry audio or replacing its state. Guard repeated Retry and diagnostic actions.
+- Preserve legitimate quotes, code fences, and edit/verbatim whitespace; reject results that become empty after local formatting.
+- Expand snippet cues once without recursively expanding their replacement text.
+- Remove expired history from persistent storage when history is loaded or new entries are saved, and preserve unreadable settings for recovery rather than overwriting them.
+- Validate model IDs and non-negative, finite cost rates before saving; trim pasted API-key whitespace without moving keys between providers.
+- Convert audio in bounded chunks instead of allocating buffers for the entire recording, and clean up temporary recording files on app exit.
+- Show actionable errors and an honest “Paste sent” status instead of implying that every target application confirmed insertion.
+- Correct single-request cost descriptions, avoid quoting arbitrary speech in new usage suggestions, and disclose legacy suggestion storage.
+- Include documentation and Google-key patterns in public-source scans; fix website reveal transitions, invalid font syntax, and overly broad compatibility claims.
+
+### Validation
+
+- Extended the existing regression script with isolated clipboard, hotkey, audio-conversion, retention, settings-recovery, and literal-output checks. No real API keys, model requests, microphone recordings, or system-wide keyboard events are used by these tests.
+- Debug/release builds, packaged app signatures, archive checksums, and desktop/mobile website checks are verified for release. These checks do not establish real-provider accuracy or universal cross-application compatibility.
+
+### Distribution
+
+- Version `4.6.1`, build `11`, as an Apple Silicon community-test ZIP with a SHA-256 checksum. Ad-hoc signed and not Apple-notarized.
+
 ## [4.6.0] - 2026-09-12
 
 ### Added
@@ -182,7 +208,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Temporary audio cleanup and public-source safety checks.
 - Privacy, security, distribution, and MIT license documentation.
 
-[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.6.1...HEAD
+[4.6.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.1
 [4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0

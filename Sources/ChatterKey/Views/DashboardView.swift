@@ -94,8 +94,8 @@ struct DashboardView: View {
 
     private var metrics: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: embedded ? 2 : 4), spacing: 12) {
-            metricCard("Whole-process estimate", value: formattedCost, detail: "transcription + polish · USD", icon: "dollarsign.circle")
-            metricCard("Words spoken", value: totalWords.formatted(), detail: "across dictations", icon: "text.word.spacing")
+            metricCard("Whole-process estimate", value: formattedCost, detail: "single audio request · USD", icon: "dollarsign.circle")
+            metricCard("Words (estimated)", value: totalWords.formatted(), detail: "preview or final text", icon: "text.word.spacing")
             metricCard("Dictations", value: records.count.formatted(), detail: "completed", icon: "waveform")
             metricCard("Speaking time", value: formattedDuration, detail: averageWPM, icon: "clock")
         }
@@ -106,7 +106,7 @@ struct DashboardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Words by day").font(.system(size: 13, weight: .semibold))
-                    Text("Your voice-writing activity over the selected period")
+                    Text(period == .all ? "Last 90 days of activity; totals include all saved records" : "Your voice-writing activity over the selected period")
                         .font(.system(size: 10.5)).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -189,7 +189,7 @@ struct DashboardView: View {
                 }
             }
             Divider().opacity(0.6)
-            Text("The estimate includes audio transcription and, when Smart Polish is enabled, approximate input/output token cost. Provider invoices remain the final source of truth.")
+            Text("The estimate includes one request’s audio, instructions, selected text, and output. Reasoning, failed calls, and fees are excluded. Provider invoices remain the final source of truth.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

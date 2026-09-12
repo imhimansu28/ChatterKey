@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip">Download for macOS</a></strong>
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <a href="https://imhimansu28.github.io/ChatterKey/">Product website</a>
   &nbsp;·&nbsp;
@@ -24,7 +24,16 @@
 > [!IMPORTANT]
 > ChatterKey is bring-your-own-key software. Audio and processing instructions go to Google Direct or OpenRouter, depending on your selected connection—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
 
-## New in v4.6.0 — Gemini, directly
+## New in v4.6.1 — Selection and clipboard reliability
+
+- Nonblocking selection capture, corrected Accessibility fallbacks, and original-target checks before pasting.
+- Safer clipboard cleanup, shortcut releases, cancellation, and explicit Retry handling.
+- Literal quotes/code preserved, non-recursive snippets, persistent history cleanup, and bounded audio conversion.
+- Clear errors and “Paste sent” feedback rather than claiming every app confirmed insertion.
+
+Read the [v4.6.1 release notes](docs/releases/v4.6.1.md) and [full changelog](CHANGELOG.md#461---2026-09-12), including validation and compatibility limits.
+
+## Google Direct setup
 
 Use your own **Gemini API key directly**, without an OpenRouter account:
 
@@ -41,10 +50,10 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 - **Google Direct:** `gemini-3.5-flash-lite` with your Gemini API key.
 - **OpenRouter:** `google/gemini-3.5-flash-lite` with your OpenRouter key, or another supported audio model.
 - Existing OpenRouter installations retain their connection, model, and rates. Switching to Google Direct is explicit.
-- Read the [release announcement](docs/releases/v4.6.0.md) or [full changelog](CHANGELOG.md#460---2026-09-12).
+- Google Direct was introduced in [v4.6.0](docs/releases/v4.6.0.md); v4.6.1 keeps the same single-model architecture.
 
 > [!WARNING]
-> The downloadable v4.6.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
+> The downloadable v4.6.1 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
 
 ## See it in action
 
@@ -122,6 +131,12 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 > [!TIP]
 > Start with `Translate to English` for multilingual speech, `Professional` for workplace writing, or `Technical` when dictating developer content.
 
+## Selection and paste limitations
+
+Magic Voice Edit uses the **active selection in the focused app**, not text copied earlier. Keep the original field and selection in place until processing finishes. Read-only content cannot be replaced in place, and some apps expose limited Accessibility information.
+
+Version 4.6.1 makes selection capture nonblocking and rechecks the original target before pasting. “Paste sent” means the paste event was dispatched, not that the target app confirmed insertion. Clipboard restoration is best-effort: an external app can process a copy or paste after the bounded wait. Review the result and use **Copy transcript** if necessary.
+
 ## How it works
 
 ```mermaid
@@ -144,7 +159,6 @@ flowchart TD
 
 Failures are shown to the user; ChatterKey does not automatically retry or fall back to another model. The explicit Retry button starts a new attempt. The optional on-device live preview is not an additional cloud request.
 
-
 ## Transparent by design
 
 | Data | What happens |
@@ -152,7 +166,7 @@ Failures are shown to the user; ChatterKey does not automatically retry or fall 
 | **API keys** | Stored in macOS Keychain |
 | **Audio** | Sent directly to the configured provider and deleted after successful processing or cancellation |
 | **Magic Voice Edit selection** | Sent only when you explicitly use the feature |
-| **Dashboard records** | Aggregate metadata stays local; transcript text and audio are not stored there |
+| **Dashboard records** | Usage metadata and suggestions stay local; older suggestions may include short repeated phrases. Clear Usage removes them |
 | **Transcript history** | Optional, local, retention-controlled, and disabled by default |
 | **Cost display** | Local whole-process estimate; the provider invoice remains the final source of truth |
 
@@ -164,6 +178,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 
 | Version | Released | Links |
 | --- | --- | --- |
+| `v4.6.1` | September 12, 2026 | [Release notes][release-v4.6.1] · [Detailed changes](CHANGELOG.md#461---2026-09-12) |
 | `v4.6.0` | September 12, 2026 | [Release notes][release-v4.6.0] · [Detailed changes](CHANGELOG.md#460---2026-09-12) |
 | `v4.5.0` | September 8, 2026 | [Release notes][release-v4.5.0] · [Detailed changes](CHANGELOG.md#450---2026-09-08) |
 | `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
@@ -208,7 +223,7 @@ Model availability and pricing change over time, so every model ID and cost-esti
 - Audio model: `gemini-3.5-flash-lite` on Google Direct; `google/gemini-3.5-flash-lite` on OpenRouter. Both use one model for all writing modes and voice edits.
 - Replace the single model ID in Settings when adopting another audio-input/text-output model. Update its rates at the same time.
 - Gemini 3.5 Flash-Lite standard estimates: $0.30/M audio input tokens, $0.30/M text input tokens, $2.50/M output tokens (checked September 7, 2026).
-- Cost estimates use 32 audio tokens/second and approximate text tokens. Selected text is counted for edits; the on-device rough transcript is not billed as another text input. Extra reasoning, retries, failed calls, taxes, and fees are not included.
+- Cost estimates use 32 audio tokens/second and approximate text tokens. Selected text is counted for edits; the on-device rough transcript is not billed as another text input. Extra reasoning, failed calls, taxes, and fees are not included. Successful explicit retries are counted as completed attempts.
 - Legacy settings migrate to the single-model schema. Existing OpenRouter Gemini selections and local history remain available. Unsupported legacy OpenAI/custom setups retain the v4.5 OpenRouter migration path; keys are never copied between providers.
 
 </details>
@@ -237,6 +252,7 @@ Bug reports, feature ideas, documentation improvements, and focused pull request
 
 MIT — see [LICENSE](LICENSE).
 
+[release-v4.6.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.1
 [release-v4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [release-v4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [release-v0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0

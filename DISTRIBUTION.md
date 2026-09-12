@@ -2,9 +2,9 @@
 
 The development script creates an ad-hoc signed app for local testing. Do not present that build as a trusted public macOS release.
 
-## v4.6.0 community-test download
+## v4.6.1 community-test download
 
-- Version `4.6.0`, build `10`; macOS 14 or later.
+- Version `4.6.1`, build `11`; macOS 14 or later.
 - The published ZIP is built for Apple Silicon (`arm64`), not a universal Intel/Apple Silicon binary.
 - Ad-hoc signed, not Developer ID signed, not hardened/notarized, and not verified on a clean Mac account. Gatekeeper may block it. Do not describe it as a trusted production release or disable system-wide security protections to install it.
 - A SHA-256 checksum accompanies the ZIP to verify download integrity; it does not establish Apple approval or publisher identity.

@@ -63,7 +63,10 @@ final class AudioRecorder {
         }
 
         let file = try AVAudioFile(forWriting: captureURL, settings: format.settings)
-        let request = makeSpeechRequest(enabled: liveTranscription, onPartialTranscript: onPartialTranscript)
+        let request = makeSpeechRequest(enabled: liveTranscription) { [weak self] text in
+            guard self?.captureURL == captureURL else { return }
+            onPartialTranscript(text)
+        }
 
         installAudioTap(on: input, format: format, file: file, speechRequest: request)
 
@@ -90,7 +93,7 @@ final class AudioRecorder {
         stopCapture(removeFile: false)
 
         do {
-            try convertToProviderWAV(from: captureURL, to: outputURL)
+            try Self.convertToProviderWAV(from: captureURL, to: outputURL)
             try? FileManager.default.removeItem(at: captureURL)
             self.captureURL = nil
             return outputURL
@@ -150,52 +153,46 @@ final class AudioRecorder {
         }
     }
 
-    private func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL) throws {
+    nonisolated static func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL) throws {
         let inputFile = try AVAudioFile(forReading: sourceURL)
-        let inputFormat = inputFile.processingFormat
-        guard let outputFormat = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: 16_000,
-            channels: 1,
-            interleaved: true
-        ),
-        let converter = AVAudioConverter(from: inputFormat, to: outputFormat),
-        let inputBuffer = AVAudioPCMBuffer(
-            pcmFormat: inputFormat,
-            frameCapacity: AVAudioFrameCount(inputFile.length)
-        ) else {
+        guard inputFile.length > 0,
+              let outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: true),
+              let converter = AVAudioConverter(from: inputFile.processingFormat, to: outputFormat),
+              let inputBuffer = AVAudioPCMBuffer(pcmFormat: inputFile.processingFormat, frameCapacity: 8_192),
+              let outputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: 4_096) else {
             throw RecorderError.conversionFailed
         }
-
-        try inputFile.read(into: inputBuffer)
-        let ratio = outputFormat.sampleRate / inputFormat.sampleRate
-        let outputCapacity = AVAudioFrameCount(ceil(Double(inputBuffer.frameLength) * ratio)) + 1_024
-        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: outputCapacity) else {
-            throw RecorderError.conversionFailed
-        }
-
-        let inputState = AudioConversionInputState()
-        var conversionError: NSError?
-        let status = converter.convert(to: outputBuffer, error: &conversionError) { _, inputStatus in
-            if inputState.wasSupplied {
-                inputStatus.pointee = .endOfStream
-                return nil
-            }
-            inputState.wasSupplied = true
-            inputStatus.pointee = .haveData
-            return inputBuffer
-        }
-        guard status != .error, conversionError == nil, outputBuffer.frameLength > 0 else {
-            throw conversionError ?? RecorderError.conversionFailed
-        }
-
         let outputFile = try AVAudioFile(
             forWriting: destinationURL,
             settings: outputFormat.settings,
             commonFormat: .pcmFormatInt16,
             interleaved: true
         )
-        try outputFile.write(from: outputBuffer)
+        let input = AudioConversionInputState(file: inputFile, buffer: inputBuffer)
+        while true {
+            var error: NSError?
+            let status = converter.convert(to: outputBuffer, error: &error) { count, inputStatus in
+                guard input.file.framePosition < input.file.length else {
+                    inputStatus.pointee = .endOfStream
+                    return nil
+                }
+                do {
+                    try input.file.read(into: input.buffer, frameCount: min(count, input.buffer.frameCapacity))
+                    inputStatus.pointee = input.buffer.frameLength == 0 ? .endOfStream : .haveData
+                    return input.buffer.frameLength == 0 ? nil : input.buffer
+                } catch {
+                    input.error = error
+                    inputStatus.pointee = .endOfStream
+                    return nil
+                }
+            }
+            if let error = input.error ?? error { throw error }
+            guard status != .error else { throw RecorderError.conversionFailed }
+            if outputBuffer.frameLength > 0 { try outputFile.write(from: outputBuffer) }
+            if status == .endOfStream { break }
+            guard outputBuffer.frameLength > 0 else { throw RecorderError.conversionFailed }
+        }
+        guard outputFile.length > 0 else { throw RecorderError.conversionFailed }
     }
 }
 
@@ -211,8 +208,17 @@ nonisolated enum RecorderError: LocalizedError {
     }
 }
 
+// AVAudioConverter invokes its input block synchronously; each conversion
+// owns these buffers, so they are never shared between concurrent calls.
 private final class AudioConversionInputState: @unchecked Sendable {
-    var wasSupplied = false
+    let file: AVAudioFile
+    let buffer: AVAudioPCMBuffer
+    var error: Error?
+
+    init(file: AVAudioFile, buffer: AVAudioPCMBuffer) {
+        self.file = file
+        self.buffer = buffer
+    }
 }
 
 private func installAudioTap(
