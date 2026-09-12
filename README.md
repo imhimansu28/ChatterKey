@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip">Download for macOS</a></strong>
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <a href="https://imhimansu28.github.io/ChatterKey/">Product website</a>
   &nbsp;·&nbsp;
@@ -24,7 +24,7 @@
 > [!IMPORTANT]
 > ChatterKey is bring-your-own-key software. Audio and processing instructions go to Google Direct or OpenRouter, depending on your selected connection—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
 
-## Google Direct — available in the current source/local build
+## New in v4.6.0 — Gemini, directly
 
 Use your own **Gemini API key directly**, without an OpenRouter account:
 
@@ -34,19 +34,17 @@ Use your own **Gemini API key directly**, without an OpenRouter account:
 
 Requests use Google's fixed OpenAI-compatible endpoint through the existing Swift HTTP client—no extra SDK or second processing stage. Google keys stay in a separate Keychain account from OpenRouter keys. Model and cost-rate settings are retained separately when switching connections. Existing installations keep their working connection; new installs default to Google Direct.
 
-**This feature is not included in the published v4.5.0 download below.** It is available in the unreleased source/local build (build 9). The v4.5.0 release notes describe that release's OpenRouter-only connection.
+### Still one model. Still one request.
 
-## New in v4.5.0 — One model. One request.
+Google Direct and OpenRouter each use **one selected audio model per attempt** for dictation, translation, cleanup, verbatim, and Magic Voice Edit. There are no separate transcription/polishing stages, hidden repair calls, automatic retries, or automatic connection switches.
 
-Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and Magic Voice Edit through **one OpenRouter model request per attempt**. No separate transcription/polishing stages, hidden repair calls, or automatic retries. Settings expose one editable audio-model ID, and the dashboard estimates audio and text tokens for that request.
-
-- Improved selection detection for apps with limited Accessibility support.
-- Voice edits send selected text and instruction audio together.
-- Existing preferences and local history migrate; provider API keys are never transferred.
-- Read the [release announcement](docs/releases/v4.5.0.md) or [full changelog](CHANGELOG.md#450---2026-09-08).
+- **Google Direct:** `gemini-3.5-flash-lite` with your Gemini API key.
+- **OpenRouter:** `google/gemini-3.5-flash-lite` with your OpenRouter key, or another supported audio model.
+- Existing OpenRouter installations retain their connection, model, and rates. Switching to Google Direct is explicit.
+- Read the [release announcement](docs/releases/v4.6.0.md) or [full changelog](CHANGELOG.md#460---2026-09-12).
 
 > [!WARNING]
-> The downloadable v4.5.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
+> The downloadable v4.6.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
 
 ## See it in action
 
@@ -59,7 +57,7 @@ Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and
 | Regular dictation | ChatterKey |
 | --- | --- |
 | Returns a raw transcript | Produces polished, ready-to-use text |
-| Uses a fixed service or model | Uses one configurable audio model, defaulting to Gemini 3.5 Flash-Lite via Google Direct in the current source build |
+| Uses a fixed service or model | Uses one configurable audio model, defaulting to Gemini 3.5 Flash-Lite via Google Direct, with OpenRouter optional |
 | Misspells names and technical terms | Learns exact spellings through personal vocabulary |
 | Hides the writing instructions | Lets you edit and preview the AI system prompt |
 | Requires separate billing checks | Estimates whole-process provider cost locally |
@@ -117,7 +115,7 @@ Gemini 3.5 Flash-Lite now handles dictation, translation, cleanup, verbatim, and
 ## Start in about 30 seconds
 
 1. **Download** the latest release and move `ChatterKey.app` to Applications.
-2. **Connect your provider** with its own API key: Google Direct in the current source/local build, or OpenRouter in v4.5.0.
+2. **Connect your provider** with its own API key: Google Direct (default for new installs) or OpenRouter.
 3. **Allow permissions** for Microphone and Accessibility. Speech Recognition is optional for live preview.
 4. **Hold your shortcut**, speak, then release to process and insert the result.
 
@@ -166,6 +164,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 
 | Version | Released | Links |
 | --- | --- | --- |
+| `v4.6.0` | September 12, 2026 | [Release notes][release-v4.6.0] · [Detailed changes](CHANGELOG.md#460---2026-09-12) |
 | `v4.5.0` | September 8, 2026 | [Release notes][release-v4.5.0] · [Detailed changes](CHANGELOG.md#450---2026-09-08) |
 | `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
 | `v0.3.1` | August 25, 2026 | [Release notes][release-v0.3.1] · [Detailed changes](CHANGELOG.md#031---2026-08-25) |
@@ -238,6 +237,7 @@ Bug reports, feature ideas, documentation improvements, and focused pull request
 
 MIT — see [LICENSE](LICENSE).
 
+[release-v4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [release-v4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [release-v0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
 [release-v0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1

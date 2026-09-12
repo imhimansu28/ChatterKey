@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ChatterKey — AI voice typing for macOS</title>
-  <meta name="description" content="Turn natural speech into polished, ready-to-use text anywhere on your Mac. ChatterKey is a native, open-source AI voice typing utility using one configurable audio model through OpenRouter.">
+  <meta name="description" content="Turn natural speech into polished, ready-to-use text anywhere on your Mac. ChatterKey is a native, open-source AI voice typing utility using one configurable audio model through Google Direct or OpenRouter.">
   <meta name="theme-color" content="#f7f6f2">
   <meta property="og:title" content="ChatterKey — Your voice, polished into text">
   <meta property="og:description" content="Hold a shortcut, speak naturally, and insert ready-to-use English in any Mac app.">
@@ -23,9 +23,9 @@
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS 14 or later",
     "description": "AI voice typing for macOS that turns natural speech into polished, ready-to-use text.",
-    "softwareVersion": "4.5.0",
+    "softwareVersion": "4.6.0",
     "license": "https://opensource.org/license/mit",
-    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip"
+    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip"
   }
   </script>
 </head>
@@ -48,7 +48,7 @@
       <a href="#privacy">Privacy</a>
       <a href="https://github.com/imhimansu28/ChatterKey/blob/main/CHANGELOG.md">Changelog</a>
     </nav>
-    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip" aria-label="Download ChatterKey version 4.5.0">Download <span>v4.5.0</span></a>
+    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0">Download <span>v4.6.0</span></a>
   </header>
 
   <main id="top">
@@ -56,12 +56,12 @@
       <div class="hero-copy reveal">
         <div class="eyebrow"><span class="status-dot"></span> Native AI voice typing for macOS</div>
         <h1>Your voice.<br><em>Polished into text.</em></h1>
-        <p class="hero-lead">Hold a shortcut and turn your voice into polished text in any Mac app, using Gemini 3.5 Flash-Lite through OpenRouter, with personal vocabulary and voice snippets built in.</p>
+        <p class="hero-lead">Hold a shortcut and turn your voice into polished text in any Mac app, using your Gemini API key directly or an optional OpenRouter connection, with personal vocabulary and voice snippets built in.</p>
         <a class="release-badge" href="https://github.com/imhimansu28/ChatterKey/releases/latest">
-          <span>New in v4.5.0</span><strong>One audio model. One request. All writing modes.</strong><b>→</b>
+          <span>New in v4.6.0</span><strong>Use your Gemini API key directly. OpenRouter optional.</strong><b>→</b>
         </a>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip" aria-label="Download ChatterKey version 4.5.0 ZIP for macOS">
+          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0 ZIP for macOS">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
             Download for macOS
           </a>
@@ -70,7 +70,7 @@
             View on GitHub
           </a>
         </div>
-        <p class="download-note">Apple Silicon · macOS 14+ · Ad-hoc signed community-test build, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0">Release notes &amp; SHA-256 checksum</a>.</p>
+        <p class="download-note">Apple Silicon · macOS 14+ · Ad-hoc signed community-test build, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0">Release notes &amp; SHA-256 checksum</a>.</p>
         <div class="hero-proof">
           <span><b>⌨</b> Type in supported apps</span>
           <span><b>↗</b> Local usage dashboard</span>
@@ -112,7 +112,7 @@
           <div class="step-number">02</div>
           <div class="step-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l2.2 7.1L25 13l-6.8 2.9L16 23l-2.2-7.1L7 13l6.8-2.9L16 3Z"/><path d="m25 21 .9 2.9L29 25l-3.1 1.1L25 29l-.9-2.9L21 25l3.1-1.1L25 21Z"/></svg></div>
           <h3>AI understands intent</h3>
-          <p>One Gemini audio request transcribes, translates, and applies your selected writing style—no separate polishing call.</p>
+          <p>One audio request through Google Direct or OpenRouter transcribes, translates, and applies your writing style—no separate polishing call.</p>
           <div class="processing-line"><span></span><span></span><span></span></div>
         </article>
         <article class="step-card reveal delay-two">
@@ -176,10 +176,10 @@
           <span><b>↗</b> Cost & usage dashboard</span><span><b>◷</b> Local history</span><span><b>⌁</b> Custom AI prompts</span><span><b>Aa</b> Eight writing modes</span><span><b>↵</b> Spoken formatting</span><span><b>◌</b> One configurable model</span><span><b>⌘</b> Clipboard-safe insertion</span>
         </div>
 
-        <div class="release-highlights reveal" aria-label="New in ChatterKey version 4.5.0">
+        <div class="release-highlights reveal" aria-label="New in ChatterKey version 4.6.0">
           <article>
             <span class="highlight-icon">↗</span>
-            <div><small>NEW IN 4.5</small><h3>One model, every mode</h3><p>Gemini 3.5 Flash-Lite handles dictation, translation, verbatim, and voice edits in one request per attempt.</p></div>
+            <div><small>NEW IN 4.6</small><h3>Gemini, directly</h3><p>Use your own Gemini API key with Google Direct. New installs default to Gemini 3.5 Flash-Lite without OpenRouter.</p></div>
           </article>
           <article>
             <span class="highlight-icon">⌁</span>
@@ -187,7 +187,7 @@
           </article>
           <article>
             <span class="highlight-icon">◷</span>
-            <div><small>FIXES &amp; TRANSPARENCY</small><h3>Better edits, clearer costs</h3><p>Improved selection capture and audio-token cost estimates. Existing settings and local history migrate safely.</p></div>
+            <div><small>SEPARATE CONNECTIONS</small><h3>Your keys stay separate</h3><p>Switch connections without mixing API keys, models, or cost rates. Existing OpenRouter setups keep their working settings.</p></div>
           </article>
         </div>
       </div>
@@ -256,7 +256,7 @@
             <div class="orbit orbit-two"></div>
             <div class="key-core"><img src="assets/app-icon.png" alt="" width="72" height="72"></div>
             <a class="provider provider-one" href="https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite" target="_blank" rel="noreferrer" aria-label="Explore Gemini audio models">
-              <span class="provider-mark">G</span><span>Gemini</span>
+              <span class="provider-mark">G</span><span>Google Direct</span>
             </a>
             <a class="provider provider-two" href="https://openrouter.ai/models" target="_blank" rel="noreferrer" aria-label="Explore OpenRouter models">
               <span class="provider-mark">OR</span><span>OpenRouter</span>
@@ -265,7 +265,7 @@
               <span class="provider-mark">1</span><span>One model</span>
             </a>
           </div>
-          <p>Audio and instructions go together to your selected model through OpenRouter. Gemini 3.5 Flash-Lite is the default.</p>
+          <p>Audio and instructions go together to Google Direct or OpenRouter—only the connection you select. Keys stay separate in macOS Keychain.</p>
         </div>
       </div>
     </section>
@@ -276,7 +276,7 @@
       <h2>Stop translating your thoughts.<br>Start expressing them.</h2>
       <p>Speak naturally. Write confidently—anywhere on your Mac.</p>
       <div class="hero-actions centered">
-        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.5.0/ChatterKey-v4.5.0.zip" aria-label="Download ChatterKey version 4.5.0 ZIP for macOS">Download ChatterKey</a>
+        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.0/ChatterKey-v4.6.0.zip" aria-label="Download ChatterKey version 4.6.0 ZIP for macOS">Download ChatterKey</a>
         <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey">Explore the source</a>
       </div>
       <small>Free and open source · macOS 14+ · Bring your own API key</small>

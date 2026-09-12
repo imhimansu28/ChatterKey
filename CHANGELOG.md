@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-09-12
+
 ### Added
 
 - Added Google Direct using a Gemini API key and Google's OpenAI-compatible audio endpoint, alongside the existing OpenRouter connection.
@@ -17,7 +19,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Existing OpenRouter setups stay on OpenRouter during migration. Choosing Google Direct is explicit and never reuses an OpenRouter key.
 - Google payloads use `reasoning_effort` and omit OpenRouter routing parameters and headers. Both connections retain one model request per attempt and manual-only Retry.
 - Expanded the existing regression harness across both connections, including audio payloads, all writing modes, voice edits, authentication/quota errors, and settings round trips.
-- Incremented the local development build to `9`; the published v4.5.0 release remains build `8`.
+- Updated the app to version `4.6.0`, build `10`, and refreshed the README, website, announcement, and download links.
+
+### Distribution
+
+- Published an Apple Silicon community-test ZIP with a SHA-256 checksum. The app is ad-hoc signed and not Apple-notarized.
 
 ## [4.5.0] - 2026-09-08
 
@@ -176,7 +182,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Temporary audio cleanup and public-source safety checks.
 - Privacy, security, distribution, and MIT license documentation.
 
-[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0
 [0.3.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.3.1
