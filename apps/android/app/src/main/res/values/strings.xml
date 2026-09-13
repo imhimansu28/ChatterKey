@@ -1,0 +1,15 @@
+<resources>
+    <string name="settings_saved_short">Settings saved</string>
+    <string name="monogram">CK</string>
+    <string name="app_name">ChatterKey</string>
+    <string name="keyboard_name">ChatterKey · English (India)</string>
+    <string name="protected_warning">Protected values changed. Check numbers, emails and URLs; this is not factual verification.</string>
+    <string name="protected_ack">I reviewed the protected-value changes</string>
+    <string name="value_change">%1$s: %2$s (%3$d → %4$d)</string>
+    <string name="mic_granted">Microphone permission is already granted.</string>
+    <string name="core_unavailable">Shared core unavailable: %1$s</string>
+    <string name="connection_unavailable">Could not load this connection: %1$s</string>
+    <string name="not_saved">Not saved: %1$s</string>
+    <string name="saved">Saved. No network request was sent. Dictate in the test editor to check model access.</string>
+    <string name="test_draft">Please review order 42 and email demo@example.test tomorrow.</string>
+</resources>

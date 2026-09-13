@@ -25,6 +25,11 @@ nonisolated package struct ProviderClient: Sendable {
         // Exactly one model request per attempt. Retry is an explicit user action.
         let (data, response) = try await transport(request)
         try Task.checkCancellation()
+        return try finish(data: data, response: response, editing: selectedText)
+    }
+
+    // Native transports may execute the request themselves; response rules stay shared.
+    package func finish(data: Data, response: URLResponse, editing selectedText: String? = nil) throws -> String {
         try validate(response: response, data: data)
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
         guard let choice = decoded.choices.first else { throw ProviderError.invalidResponse }

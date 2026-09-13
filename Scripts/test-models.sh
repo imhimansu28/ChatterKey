@@ -5,6 +5,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 cat > "$TMP/ModelHarness.swift" <<'SWIFT'
 import ChatterKeyCore
+import ChatterKeyAndroidBridge
 import AppKit
 import AVFoundation
 import Foundation
@@ -13,6 +14,7 @@ import Foundation
 @MainActor
 struct ModelHarness {
     static func main() async throws {
+        try testAndroidBridge()
         try await testLocalRegressions()
         try await testEditPreview()
         try await testHandsFreeHotkey()
@@ -553,6 +555,68 @@ struct ModelHarness {
         print("Edit preview: literal diff, bounded long-text comparison, protected-value acknowledgement, Unicode, and stale-target guards passed")
     }
 
+    static func testAndroidBridge() throws {
+        func call(_ payload: [String: Any], bytes: Data = Data()) throws -> [String: Any] {
+            let input = String(data: try JSONSerialization.data(withJSONObject: payload), encoding: .utf8)!
+            let output = input.withCString { input in
+                bytes.withUnsafeBytes { raw in
+                    chatterkeyCall(input, raw.bindMemory(to: UInt8.self).baseAddress, Int32(bytes.count))
+                }
+            }
+            guard let output else { preconditionFailure("Bridge allocation failed") }
+            defer { chatterkeyFree(output) }
+            return try JSONSerialization.jsonObject(with: Data(String(cString: output).utf8)) as! [String: Any]
+        }
+        let catalog = try call(["operation": "catalog"])
+        precondition(catalog["ok"] as? Bool == true)
+        let choices = catalog["value"] as! [String: Any]
+        precondition((choices["providers"] as! [[String: Any]]).count == 2)
+        precondition((choices["modes"] as! [[String: Any]]).count == OutputMode.allCases.count)
+        let selected = "A👋नमस्ते\u{0}Z: order 42, demo@example.test"
+        let proposed = "A👋नमस्ते\u{0}Z: order 43, demo@example.test"
+        let audio = Data([0, 1, 2, 255])
+        for connection in AIProvider.availableConnections {
+            for mode in OutputMode.allCases {
+                var settings = ProviderSettings()
+                settings.selectProvider(connection)
+                settings.outputMode = mode
+                let config = try JSONSerialization.jsonObject(with: JSONEncoder().encode(settings))
+                var payload: [String: Any] = ["operation": "request", "settings": config, "credential": "test-credential", "selectedText": selected]
+                let bridge = try call(payload, bytes: audio)
+                precondition(bridge["ok"] as? Bool == true)
+                let value = bridge["value"] as! [String: Any]
+                let client = ProviderClient(settings: settings, apiKey: "test-credential", transport: { _ in preconditionFailure("No network allowed") })
+                let native = try client.makeAudioRequest(audio: audio, editing: selected)
+                precondition(value["url"] as? String == native.url?.absoluteString)
+                let body = try JSONSerialization.jsonObject(with: Data((value["body"] as! String).utf8)) as! NSDictionary
+                let expected = try JSONSerialization.jsonObject(with: native.httpBody!) as! NSDictionary
+                precondition(body == expected, "Android and Mac must use identical request semantics")
+                payload["operation"] = "response"
+                payload["status"] = 200
+                payload.removeValue(forKey: "credential")
+                let response = try call(payload, bytes: reply(proposed))
+                precondition(response["ok"] as? Bool == true)
+                precondition((response["value"] as? [String: Any])?["text"] as? String == proposed)
+                precondition((response["value"] as? [String: Any])?["wordCount"] as? Int == UsageAnalytics.wordCount(proposed))
+                payload["operation"] = "preview"
+                payload["proposed"] = proposed
+                let preview = try call(payload)
+                let review = preview["value"] as! [String: Any]
+                precondition((review["warnings"] as! [[String: Any]]).count == 2)
+                precondition(review["hasChanges"] as? Bool == true)
+                payload["operation"] = "response"
+                payload["status"] = 401
+                let rejected = try call(payload, bytes: Data(#"{"error":{"message":"fixture denial"}}"#.utf8))
+                precondition(rejected["ok"] as? Bool == false)
+            }
+        }
+        let malformed = try call(["operation": "request", "settings": [:]])
+        precondition(malformed["ok"] as? Bool == false)
+        let unknown = try call(["operation": "unsupported"])
+        precondition(unknown["ok"] as? Bool == false)
+        print("Android bridge host fixtures: shared provider/mode requests, Unicode/NUL round trips, protected values and error envelopes passed")
+    }
+
     static func testLocalRegressions() async throws {
         let suite = "ChatterKey-Regression-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -802,7 +866,12 @@ swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
   core/Sources/ChatterKeyCore/*.swift -o "$TMP/libChatterKeyCore.dylib" \
   -emit-module-path "$TMP/ChatterKeyCore.swiftmodule"
 swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
+  -emit-library -emit-module -module-name ChatterKeyAndroidBridge \
   -I "$TMP" -L "$TMP" -lChatterKeyCore -Xlinker -rpath -Xlinker "$TMP" \
+  apps/android/bridge/AndroidBridge.swift -o "$TMP/libChatterKeyAndroidBridge.dylib" \
+  -emit-module-path "$TMP/ChatterKeyAndroidBridge.swiftmodule"
+swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
+  -I "$TMP" -L "$TMP" -lChatterKeyCore -lChatterKeyAndroidBridge -Xlinker -rpath -Xlinker "$TMP" \
   apps/macos/Sources/Models.swift \
   apps/macos/Sources/Adapters/{TextInserter,HistoryStore,ClipboardTransaction,TextSelectionReader,GlobalHotkey,AudioRecorder,ProviderTransport}.swift \
   "$TMP/ModelHarness.swift" -o "$TMP/model-tests"

@@ -1,0 +1,70 @@
+plugins { id 'com.android.application' }
+
+// Private signing material is kept outside disposable build/tool caches.
+def signingFile = rootProject.file('signing/release.properties')
+def releaseKey = new Properties()
+if (signingFile.isFile()) signingFile.withInputStream { releaseKey.load(it) }
+
+android {
+    namespace 'app.chatterkey.android'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'app.chatterkey.android'
+        minSdk 28
+        targetSdk 36
+        versionCode 4
+        versionName '1.0.0'
+        testInstrumentationRunner 'app.chatterkey.android.KeyboardDeviceChecks'
+        ndk { abiFilters 'arm64-v8a' }
+    }
+    signingConfigs {
+        release {
+            if (signingFile.isFile()) {
+                storeFile rootProject.file('signing/' + releaseKey.getProperty('storeFile'))
+                storePassword releaseKey.getProperty('storePassword')
+                keyAlias releaseKey.getProperty('keyAlias')
+                keyPassword releaseKey.getProperty('keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        debug { versionNameSuffix '-dev' }
+        release {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets.main.jniLibs.srcDirs = [rootProject.file('../../.build/android-native/jniLibs')]
+    packaging.jniLibs {
+        useLegacyPackaging = false
+        keepDebugSymbols += ['**/*.so'] // Native build script already strips debug data.
+    }
+    lint {
+        abortOnError true
+        disable 'ChromeOsAbiSupport' // Physical ARM64 phone only; no ChromeOS/emulator build.
+    }
+}
+
+dependencies { testImplementation 'junit:junit:4.13.2' }
+
+// Never silently emit an unsigned/debug-signed APK when release signing is absent.
+tasks.configureEach {
+    if (name == 'preReleaseBuild') {
+        doFirst {
+            if (!signingFile.isFile() ||
+                    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].any { !releaseKey.getProperty(it) }) {
+                throw new GradleException('Release signing is missing. See apps/android/README.md; do not use the debug key.')
+            }
+        }
+    }
+}

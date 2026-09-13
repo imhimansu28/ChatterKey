@@ -3,18 +3,21 @@
 </p>
 
 <h1 align="center">ChatterKey</h1>
-<p align="center"><strong>Native AI voice typing for macOS.</strong></p>
-<p align="center">Hold <kbd>Fn</kbd> to talk, or double-tap for hands-free recording. ChatterKey prepares polished text and inserts it into the app you are already using.</p>
+<p align="center"><strong>Native AI voice typing for macOS and Android.</strong></p>
+<p align="center">Hold <kbd>Fn</kbd> on Mac or the keyboard mic on Android. Speak naturally; review voice edits before replacing text. One shared processing core, separate native apps.</p>
 
 <p align="center">
-  <a href="https://github.com/imhimansu28/ChatterKey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/imhimansu28/ChatterKey?style=flat-square&color=5b5ce2"></a>
+  <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0"><img alt="macOS 5.0.0" src="https://img.shields.io/badge/macOS-5.0.0-5b5ce2?style=flat-square"></a>
+  <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/android-v1.0.0"><img alt="Android 1.0.0" src="https://img.shields.io/badge/Android-1.0.0-16a66a?style=flat-square"></a>
   <img alt="macOS 14 or later" src="https://img.shields.io/badge/macOS-14%2B-17171d?style=flat-square&logo=apple">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-16a66a?style=flat-square"></a>
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip">Download for macOS</a></strong>
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip">Download for macOS</a></strong>
+  &nbsp;·&nbsp;
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK</a></strong>
   &nbsp;·&nbsp;
   <a href="https://imhimansu28.github.io/ChatterKey/">Product website</a>
   &nbsp;·&nbsp;
@@ -24,16 +27,20 @@
 > [!IMPORTANT]
 > ChatterKey is bring-your-own-key software. Audio and processing instructions go to Google Direct or OpenRouter, depending on your selected connection—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
 
-## New in v4.8.0 — Review edits. Record hands-free. Shared core.
+## Separate releases. One shared core.
 
-- Review selected-text edits before Apply, with protected-value warnings and Copy/Discard recovery.
-- Double-tap Fn for hands-free recording; press Fn again to stop. Hold-to-talk remains available.
-- More reliable recording resets and clearer explanations when a selection cannot be verified.
-- Native Mac code now lives in `apps/macos`, with reusable processing in `ChatterKeyCore`. No Android implementation is included.
+| Platform | Current version | Requirements | Release notes |
+| --- | --- | --- | --- |
+| macOS | **5.0.0 · build 15** | Apple Silicon, macOS 14+; ad-hoc signed, not Apple-notarized | [macOS 5.0.0](docs/releases/macos-v5.0.0.md) |
+| Android | **1.0.0 · version code 4** | ARM64 phone, Android 9+; signed release APK | [Android 1.0.0](docs/releases/android-v1.0.0.md) |
 
-Read the [v4.8.0 release notes](docs/releases/v4.8.0.md) and [full changelog](CHANGELOG.md#480---2026-09-13), including validation and compatibility limits.
+Version numbers and release tags are independent: `macos-vX.Y.Z` and `android-vX.Y.Z`. Each release has its own binary and checksum; the repository and reusable Swift core stay shared. There is no Windows build or automatic settings/key synchronization.
 
-### Recording controls
+**macOS 5.0.0** packages the Mac app independently while making shared response finishing reusable by Android's native transport. Existing single-model dictation, review/protected-value checks, Fn hands-free controls, Keychain accounts and history formats are preserved. Those user-facing features were already introduced in v4.8.0; this is not a new implementation of them.
+
+**Android 1.0.0** is the first signed Android release: a native English (India) keyboard, animated mic/hold and hands-free controls, selected-text review, provider settings and an optional local usage dashboard. See the [full changelog](CHANGELOG.md) for platform-specific changes and validation limits.
+
+### macOS recording controls
 
 With **Settings → General → Recording shortcut → Fn** selected:
 
@@ -45,14 +52,26 @@ With **Settings → General → Recording shortcut → Fn** selected:
 
 Only ChatterKey has changed; no integration or modifications to other applications are required by this build. This does not establish universal selected-text replacement compatibility. The download remains an ad-hoc signed, non-notarized community-test package.
 
-### Selected-text review
+### macOS selected-text review
 
 - Compare the original and proposed text before choosing **Apply to Original**, **Copy & Close**, or **Discard**. Closing the review also discards it.
 - Acknowledge detected changes to numbers, email addresses, and HTTP(S)/www URLs before applying. Checks compare literal values and occurrence counts, not factual correctness or meaning; always review the text. URL-adjacent punctuation is kept conservatively and can trigger a warning for an intentional formatting change.
 - Apply rechecks the original field, range, and selection. Apps without sufficient Accessibility information use manual Copy recovery instead. There is no automatic retargeting or extra model request.
 - Normal dictation keeps its direct-insertion flow. Review data stays in memory; discarded proposals are not added to transcript history. The provider request and its local usage record have already occurred.
 
-See the [ordered product roadmap](ROADMAP.md) for Hindi/Hinglish controls, app-specific preferences, approved corrections, attempt details, and the approval-gated Android keyboard plan.
+See the [ordered product roadmap](ROADMAP.md) for Hindi/Hinglish controls, app-specific preferences, approved corrections, attempt details, and the approved Android keyboard development plan.
+
+## Android keyboard
+
+The native Java keyboard shares the **actual cross-compiled Swift core** through JNI. It includes staggered English (India) QWERTY, Shift/caps lock, full number/symbol pages with ₹, a wide spacebar, long-press digits/delete, animated voice recording and selected-text review. Google Direct and OpenRouter retain separate model preferences and encrypted keys.
+
+- **Dashboard / Settings / Practice:** opt-in local counters, organized provider/writing preferences and a private test editor.
+- **Counters:** typed-word estimates and words in final dictation output—not exact spoken words or a net document count. Edits are counted separately. No typed text is stored for analytics; password/private-marked fields and Practice are excluded.
+- **Voice:** one audio-model request per attempt; up to two minutes of in-memory recording; no automatic retries or Send. Apply requires the original editor/selection to remain verifiable.
+- **Setup:** install the signed APK, then enable/select ChatterKey and allow microphone access in Practice. Enter your own provider API key in Settings and Save. Normal typing does not require a key or internet.
+- **Migration:** debug and release signing differ. Remove old debug copies from **all profiles where installed** before the first release install; back up important preferences first. Subsequent release updates reuse the same signing identity.
+
+Read [Android setup, architecture, signing, privacy and test checklist](apps/android/README.md). Build tools/caches stay within the approved 10 GB cap, without an emulator or Android Studio. Signed release installation/launch passed on a physical Android 15 ARM64 phone; earlier debug UI/core fixtures and user spot checks passed. Live release-mode microphone, provider, editor and lifecycle coverage remains incomplete. Android does not yet include Mac history/cost dashboards, local live transcription, predictive typing or full Mac feature parity.
 
 ## Google Direct setup
 
@@ -71,10 +90,10 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 - **Google Direct:** `gemini-3.5-flash-lite` with your Gemini API key.
 - **OpenRouter:** `google/gemini-3.5-flash-lite` with your OpenRouter key, or another supported audio model.
 - Existing OpenRouter installations retain their connection, model, and rates. Switching to Google Direct is explicit.
-- Google Direct was introduced in [v4.6.0](docs/releases/v4.6.0.md); v4.8.0 keeps the same single-model architecture.
+- Google Direct was introduced in [v4.6.0](docs/releases/v4.6.0.md); macOS 5.0.0 and Android 1.0.0 keep the same single-model architecture.
 
 > [!WARNING]
-> The downloadable v4.8.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
+> The downloadable macOS 5.0.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
 
 ## See it in action
 
@@ -93,7 +112,7 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 | Requires separate billing checks | Estimates whole-process provider cost locally |
 | Keeps features scattered | Unifies Dashboard, History, prompts, models, vocabulary, and snippets in Settings |
 
-## Everything in one voice workflow
+## macOS voice workflow
 
 <table>
 <tr>
@@ -133,7 +152,7 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 
 ### ↗ Understand your usage
 
-- Words spoken, dictations, speaking time, and average WPM
+- Output-word counts, dictations, recording time, and estimated WPM
 - Daily activity and provider breakdowns
 - Single-request cost estimates for audio input, instructions, and text output
 - Small suggestions for repeated phrases, filler words, and long thoughts
@@ -142,9 +161,9 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 </tr>
 </table>
 
-## Start in about 30 seconds
+## macOS setup
 
-1. **Download** the latest release and move `ChatterKey.app` to Applications.
+1. **Download** the macOS release linked above and move `ChatterKey.app` to Applications.
 2. **Connect your provider** with its own API key: Google Direct (default for new installs) or OpenRouter.
 3. **Allow permissions** for Microphone and Accessibility. Speech Recognition is optional for live preview.
 4. **Hold your shortcut**, speak, then release—or double-tap Fn, speak hands-free, and press Fn again to finish. Selected-text edits pause for review.
@@ -152,13 +171,13 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 > [!TIP]
 > Start with `Translate to English` for multilingual speech, `Professional` for workplace writing, or `Technical` when dictating developer content.
 
-## Selection and paste limitations
+## macOS selection and paste limitations
 
 Magic Voice Edit uses the **active selection in the focused app**, not text copied earlier. Keep the original field and selection in place until processing finishes. Read-only content cannot be replaced in place, and some apps expose limited Accessibility information.
 
 Selection capture is nonblocking, and the original target is rechecked before pasting. “Paste sent” means the paste event was dispatched, not that the target app confirmed insertion. Clipboard restoration is best-effort: an external app can process a copy or paste after the bounded wait. Review the result and use **Copy transcript** if necessary.
 
-## How it works
+## How the Mac workflow works
 
 ```mermaid
 flowchart TD
@@ -180,7 +199,7 @@ flowchart TD
 
 Failures are shown to the user; ChatterKey does not automatically retry or fall back to another model. The explicit Retry button starts a new attempt. The optional on-device live preview is not an additional cloud request.
 
-## Transparent by design
+## macOS data handling
 
 | Data | What happens |
 | --- | --- |
@@ -199,7 +218,10 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 
 | Version | Released | Links |
 | --- | --- | --- |
-| `v4.8.0` | September 12, 2026 | [Release notes][release-v4.8.0] · [Detailed changes](CHANGELOG.md#461---2026-09-12) |
+| `macos-v5.0.0` | September 13, 2026 | [Release notes](docs/releases/macos-v5.0.0.md) |
+| `android-v1.0.0` | September 13, 2026 | [Release notes](docs/releases/android-v1.0.0.md) |
+| `v4.8.0` | September 13, 2026 | [Release notes][release-v4.8.0] · [Detailed changes](CHANGELOG.md#480---2026-09-13) |
+| `v4.6.1` | September 12, 2026 | [Release notes](docs/releases/v4.6.1.md) · [Detailed changes](CHANGELOG.md#461---2026-09-12) |
 | `v4.6.0` | September 12, 2026 | [Release notes][release-v4.6.0] · [Detailed changes](CHANGELOG.md#460---2026-09-12) |
 | `v4.5.0` | September 8, 2026 | [Release notes][release-v4.5.0] · [Detailed changes](CHANGELOG.md#450---2026-09-08) |
 | `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
@@ -229,19 +251,21 @@ core/Sources/ChatterKeyCore/      # Shared processing and value models
 apps/macos/Sources/               # Native app, settings and UI
 apps/macos/Sources/Adapters/      # Mic, shortcuts, text access, storage and HTTP transport
 apps/macos/Resources/             # Mac app icons
+apps/android/app/                # Native Android IME, settings, recording and HTTPS adapters
+apps/android/bridge/             # Swift C ABI bridge to the same processing core
 Scripts/                         # Root-level build, package and regression commands
 ```
 
 The Mac executable depends on `ChatterKeyCore`; the core does not depend on the app. It owns provider request construction/response parsing, prompts, writing modes, snippets, edit diffs, protected-value checks and estimated usage. The Mac app supplies completed WAV bytes, a settings value conforming to `ProcessingSettings`, and an explicit HTTP transport. Settings migrations, Keychain access, audio capture, live speech preview, Fn gestures, editor verification and window lifecycle stay native.
 
-The core is currently a Swift module with package-scoped interfaces, not a cross-language SDK or a server. No Android project, Kotlin tooling, mobile bridge or automatic sync is included. Future mobile integration still requires a separate design and approval. This refactor does not change the installed application's settings keys, bundle identity or one-model-request-per-attempt policy.
+The core is a Swift module with package-scoped interfaces, not a server. The Android target exposes a narrow C ABI through JNI and cross-compiles these same sources; Android owns its native permissions, storage and editor lifecycle. No automatic sync is included. Mac settings keys, bundle identity and the one-model-request-per-attempt policy are unchanged.
 
-Run `bash Scripts/test-models.sh` to compile the core as a separate module and exercise the existing local/provider regressions through that boundary. Root-level build commands remain unchanged.
+Run `bash Scripts/test-models.sh` to compile the core as a separate module and exercise the existing local/provider regressions through that boundary. Use `--product ChatterKey` for a Mac-only build; Android uses `Scripts/build-android.py`.
 
 ### Build and install
 
 ```bash
-swift build
+swift build --product ChatterKey
 ./Scripts/package-app.sh
 rm -rf /Applications/ChatterKey.app
 ditto dist/ChatterKey.app /Applications/ChatterKey.app
@@ -288,7 +312,7 @@ Bug reports, feature ideas, documentation improvements, and focused pull request
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+ChatterKey source is MIT — see [LICENSE](LICENSE). The Android APK also includes Swift and other runtime dependencies under their respective licenses; full notices are bundled in [licenses.txt](apps/android/app/src/main/assets/licenses.txt) and available in Android Settings.
 
 [release-v4.8.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.8.0
 [release-v4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0

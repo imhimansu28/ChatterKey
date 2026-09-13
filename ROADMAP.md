@@ -1,6 +1,6 @@
 # ChatterKey product roadmap
 
-The v4.8.0 community-test release includes the Mac/core separation and reviewable voice edits below. Language/preferences and Android remain future milestones, in that order. Published test builds do not establish universal cross-application compatibility.
+macOS 5.0.0 and Android 1.0.0 are separate platform releases from one shared-core repository. Mac voice review/hands-free controls were already in v4.8.0; Android adds the native keyboard, settings/dashboard and signed APK. Signed Android USB installation/launch and earlier native debug fixtures passed, but neither platform claims exhaustive live provider/editor compatibility. Language/preferences work and larger typing features remain planned. There is no Windows implementation.
 
 ## Shared-core preparation — included in v4.8.0 (Mac only)
 
@@ -8,7 +8,7 @@ The v4.8.0 community-test release includes the Mac/core separation and reviewabl
 - Share provider request/response logic, prompts, writing modes, text processing, edit warnings, value models and usage estimates. Inject settings and transport; accept WAV data rather than reading native files in the core.
 - Keep native settings serialization/migrations, credential storage, microphone capture, live speech preview, Fn gestures, Accessibility/clipboard verification and recording/review lifecycle in the Mac app.
 - Preserve existing settings/history formats and one-request behavior; validate the actual module boundary in the existing regression harness.
-- This step is preparation, not Android implementation or proof of Android compatibility. Do not create an Android app, install Kotlin/Android tools, or introduce a mobile bridge without renewed approval. Other roadmap milestones retain their order.
+- The published v4.8.0 step was preparation, not proof of Android compatibility. Subsequent Android implementation was explicitly approved; it does not imply the planned language/preferences milestone is complete.
 
 ## 1. Reviewable voice edits — included in v4.8.0
 
@@ -37,18 +37,21 @@ The v4.8.0 community-test release includes the Mac/core separation and reviewabl
 
 Validate representative Hindi/Hinglish recordings before making accuracy claims. Local profile selection and instructions must still feed the same single model request.
 
-## 3. Android keyboard — approval required before starting
+## 3. Android keyboard — first signed release, 1.0.0
 
-Do not install Android SDKs, Android Studio, Gradle distributions, emulator images, or start Android implementation until the user approves the plan and resource budget.
+Approval on September 13, 2026 permits minimal CLI tools/JDK/SDK and a USB-authorized physical phone within a hard **10 GB total additional tools/cache/build budget**. No emulator, Android Studio or heavy IDE; keep the installed Mac app unchanged.
 
-Before asking for approval:
+Implemented locally:
 
-1. Read this Mac's available storage, RAM, CPU architecture, and any existing Java/Android tools without installing anything.
-2. Ask about the phone's Android version, USB availability, desired language/layout, and whether a physical phone can be used for testing.
-3. Present a short staged plan: basic typing keyboard → hold-to-dictate with one audio-model request → language/style and edit preview → explicit correction storage.
-4. Give a current storage/RAM estimate broken down into required downloads, installed tools, dependency/build caches, and free-space headroom. Distinguish official requirements from estimates; check current official documentation before quoting numbers.
-5. Prefer a minimal command-line build and a USB-connected physical phone if supported by the available system resources. Treat an emulator as optional, not a prerequisite.
-6. Wait for explicit permission before setup or implementation. USB installation/testing also requires the user's authorized device connection.
+1. Native Java `InputMethodService` with basic typing and hold/double-tap microphone controls.
+2. Cross-compiled ARM64 shared Swift core behind a narrow C/JNI bridge, with Android audio, HTTPS, settings and editor adapters.
+3. One configurable audio model per attempt; Google Direct by default and separately configured OpenRouter optional. Retry stays explicit.
+4. Selected-text review and protected-value warnings, guarded Apply, Copy and Discard, with editor-session cancellation and stale-result protection.
+5. Android Keystore-encrypted provider credentials and a private test editor; no Mac settings/key migration or background text collection.
+
+APK build, local unit/shared-core regressions, signing/alignment checks and lint are build-time checks only. Earlier debug APKs passed USB installation and native keyboard/dashboard/settings fixtures on a Motorola Edge 40 (Android 15/ARM64); the user reported their tested functionality working. The signed `1.0.0` APK adds release packaging, launcher branding, Dashboard/Settings/Practice, opt-in counters and bundled privacy/licenses. After a secondary-profile debug conflict was removed with authorization, release USB installation and launch passed. **Live release-mode microphone/provider/editor and lifecycle behavior still need broader validation.** The current scope does not include all Mac features or advanced keyboard behavior.
+
+Next: complete the [physical-device test checklist](apps/android/README.md#validation-checklist), fix observed runtime issues, then evaluate explicit language controls, richer typing layouts and the other planned preferences. Publishing requires separate approval and release-signing/dependency-notice preparation. Do not expand tools beyond the approved storage cap.
 
 ## Constraints across milestones
 

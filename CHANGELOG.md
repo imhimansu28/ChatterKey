@@ -4,6 +4,46 @@ All notable changes to ChatterKey are documented here, version by version.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [macOS 5.0.0] - 2026-09-13
+
+### Changed
+
+- Introduce platform-specific `macos-vX.Y.Z` / `android-vX.Y.Z` releases, download links, checksums and documentation from the shared repository. Historical unprefixed tags remain Mac releases.
+- Expose shared response finishing for Android's native HTTP adapter without changing the Mac request/response behavior. Mac packaging explicitly builds only the Mac executable, uses build 15, treats compiler warnings as errors, strips debug-symbol build paths, rejects remaining local home paths and bundles the project license/privacy document.
+- Preserve existing Mac settings/history/Keychain identities, one-model requests, selected-text review/protected warnings and Fn hold/double-tap controls. These user-facing features were already present in v4.8.0.
+- Correct the v4.8.0 release date/changelog link and distinguish Mac-only features from Android functionality. Release scans report filenames rather than printing potential credentials and block tracked private/generated Android artifacts.
+
+### Distribution limits
+
+- Apple Silicon, macOS 14+; ad-hoc signed community-test ZIP, not Developer ID signed or Apple-notarized. No Windows build, automatic cross-device sync or claim of universal editor compatibility.
+
+## [Android 1.0.0] - 2026-09-13
+
+### Added
+
+- First signed Android ARM64 keyboard release with native typing, hold-to-talk and double-tap hands-free recording, Stop/Cancel, and a two-minute in-memory WAV limit.
+- A C/JNI adapter cross-compiles the same Swift processing core used by macOS. Android provides its own microphone, editor, encrypted settings and single-request HTTPS transport; no second transcription stage or automatic retry is introduced.
+- Selected-text edit preview, protected-value acknowledgement, guarded Apply, Copy and Discard. Session changes invalidate insertion; hiding the keyboard cancels active recording/processing. Voice never submits messages.
+- Separate Google/OpenRouter credentials encrypted with Android Keystore, configurable model/mode/prompt/vocabulary/snippets, and a private keyboard test editor.
+- Storage-guarded minimal CLI build tooling, mic/WAV unit tests, shared bridge parity/Unicode regressions, and an explicit USB-device validation checklist.
+- Android keyboard UI refinement: default English (India) staggered QWERTY, wide spacebar, one-shot Shift/caps lock, two symbol pages with ₹, long-press digits and repeat Backspace. Compact options/cancel controls replace the oversized toolbar.
+- Local audio-level animation, recording timer/hands-free feedback and a separate processing state, with fixed mic placement and hidden-view/reduced-motion handling. Native device-rendered UI fixtures cover narrow/large-text, portrait and landscape layouts without touching real editors or recording audio.
+- Native Dashboard/Settings/Practice pages, grouped provider/writing controls, collapsible advanced preferences, usage cards and a last-seven-days activity chart.
+- Opt-in local aggregate counters distinguish estimated ChatterKey typed-word runs from final dictation output words, successful voice duration, dictations and voice edits. Password/private-mode fields and practice are excluded; no typed text, app identity or per-attempt history is logged. Pause/Clear leave provider settings intact and invalidate stale counting. Counts are not an exact spoken/document word count or billing ledger.
+
+### Changed
+
+- Android release packaging: private persistent signing identity, non-debuggable R8-optimized APK, preserved JNI names, original ChatterKey adaptive icon with themed waveform, bundled privacy/runtime notices and in-app version/documents. Release assembly verifies certificate type, manifest safety, ARM64 runtime inventory and 16 KB ZIP/ELF alignment, and emits a checksum.
+- Android microphone denial now offers app-settings recovery. Failed recording startup clears attempt state/releases the device, and audio preparation has a timeout rather than waiting indefinitely before the HTTP deadline begins.
+- Release assembly never installs the app. An initially blocked debug-to-release install was traced to a leftover debug copy in a secondary profile; after authorized removal, signed release installation and launch succeeded in the main profile. Document the all-profiles migration check without including private device/profile identifiers.
+
+### Validation and limitations
+
+- Ten release unit tests, lint, shared/bridge regressions, signing and 16 KB ZIP/native alignment checks passed. Earlier debug builds passed native UI/core fixtures and user spot checks; signed release USB installation and launch passed on one Android 15 ARM64 phone. Live release-mode microphone/provider/editor and lifecycle coverage remains incomplete. Advanced predictive typing, language preferences and full Mac feature parity remain planned.
+- Android setup stays within the approved 10 GB additional tools/cache/build cap, without an emulator or Android Studio. The separate Mac download is version 5.0.0.
+
 ## [4.8.0] - 2026-09-13
 
 ### Added

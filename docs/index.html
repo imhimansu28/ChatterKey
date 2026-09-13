@@ -3,30 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ChatterKey — AI voice typing for macOS</title>
-  <meta name="description" content="Turn natural speech into polished, ready-to-use text anywhere on your Mac. ChatterKey is a native, open-source AI voice typing utility using one configurable audio model through Google Direct or OpenRouter.">
+  <title>ChatterKey — AI voice typing for macOS and Android</title>
+  <meta name="description" content="Native voice typing for macOS and an Android keyboard, powered by one shared processing core. Download macOS 5.0.0 or the signed Android 1.0.0 APK. Bring your own Google Direct or OpenRouter key.">
   <meta name="theme-color" content="#f7f6f2">
   <meta property="og:title" content="ChatterKey — Your voice, polished into text">
-  <meta property="og:description" content="Hold a shortcut, speak naturally, and insert ready-to-use text in supported Mac text fields.">
+  <meta property="og:description" content="Hold Fn on Mac or the keyboard mic on Android. One model request, reviewable voice edits, separate native apps.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://imhimansu28.github.io/ChatterKey/">
   <meta property="og:image" content="https://imhimansu28.github.io/ChatterKey/assets/chatterkey-hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/app-icon.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/app-icon.png">
-  <link rel="stylesheet" href="styles.css?v=f7fe9b9e8aa7">
+  <link rel="stylesheet" href="styles.css?v=8d3675b1e685">
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "ChatterKey",
-    "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "macOS 14 or later",
-    "description": "AI voice typing for macOS that turns natural speech into polished, ready-to-use text.",
-    "softwareVersion": "4.8.0",
-    "license": "https://opensource.org/license/mit",
-    "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip"
-  }
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ChatterKey for macOS",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "macOS 14 or later (Apple Silicon)",
+      "softwareVersion": "5.0.0",
+      "license": "https://opensource.org/license/mit",
+      "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "ChatterKey for Android",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Android 9 or later (ARM64)",
+      "softwareVersion": "1.0.0",
+      "license": "https://opensource.org/license/mit",
+      "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk"
+    }
+  ]
+}
   </script>
 </head>
 <body>
@@ -46,31 +58,31 @@
       <a href="#features">Features</a>
       <a href="#use-cases">Use cases</a>
       <a href="#privacy">Privacy</a>
-      <a href="https://github.com/imhimansu28/ChatterKey/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="#downloads">Downloads</a>
     </nav>
-    <a class="header-cta" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip" aria-label="Download ChatterKey version 4.8.0">Download <span>v4.8.0</span></a>
+    <a class="header-cta" href="#downloads" aria-label="Choose a macOS or Android download">Downloads <span>↓</span></a>
   </header>
 
   <main id="top">
     <section class="hero section-shell">
       <div class="hero-copy reveal">
-        <div class="eyebrow"><span class="status-dot"></span> Native AI voice typing for macOS</div>
+        <div class="eyebrow"><span class="status-dot"></span> Native apps for macOS &amp; Android</div>
         <h1>Your voice.<br><em>Polished into text.</em></h1>
-        <p class="hero-lead">Hold a shortcut or double-tap Fn hands-free to turn your voice into polished text in supported Mac text fields, using your Gemini API key directly or an optional OpenRouter connection, with personal vocabulary and voice snippets built in.</p>
-        <a class="release-badge" href="https://github.com/imhimansu28/ChatterKey/releases/latest">
-          <span>New in v4.8.0</span><strong>Review edits. Record hands-free. Shared Swift core.</strong><b>→</b>
+        <p class="hero-lead">Hold Fn on Mac or the keyboard mic on Android. Turn speech into polished text, review selected-text edits, and keep your own Google Direct or OpenRouter connection. One shared core. Two native apps.</p>
+        <a class="release-badge" href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">
+          <span>macOS 5.0.0</span><strong>Now alongside Android 1.0.0. Separate releases, shared core.</strong><b>→</b>
         </a>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip" aria-label="Download ChatterKey version 4.8.0 ZIP for macOS">
+          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip" aria-label="Download ChatterKey version 5.0.0 ZIP for macOS">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
             Download for macOS
           </a>
-          <a class="button button-secondary" href="https://github.com/imhimansu28/ChatterKey">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.2-4-2-5-2.5M14 22v-3.1c0-.9.1-1.5-.5-2.1 2.8-.3 5.7-1.4 5.7-6.2 0-1.4-.5-2.5-1.3-3.4.1-.3.6-1.6-.1-3.3 0 0-1.1-.3-3.5 1.3a12 12 0 0 0-6.4 0C5.5 3.6 4.4 4 4.4 4c-.7 1.7-.2 3-.1 3.3A4.9 4.9 0 0 0 3 10.6c0 4.8 2.9 5.9 5.7 6.2-.4.4-.7 1-.7 2.1V22"/></svg>
-            View on GitHub
+          <a class="button button-secondary" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk" aria-label="Download ChatterKey Android 1.0.0 ARM64 APK">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
+            Download Android APK
           </a>
         </div>
-        <p class="download-note">Apple Silicon · macOS 14+ · Ad-hoc signed community-test build, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/v4.8.0">Release notes &amp; SHA-256 checksum</a>.</p>
+        <p class="download-note"><strong>Mac:</strong> Apple Silicon · macOS 14+ · Ad-hoc signed, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">Mac notes &amp; checksum</a>. <strong>Android:</strong> signed APK · Android 9+ · ARM64. <a href="#downloads">Setup &amp; limits</a>.</p>
         <div class="hero-proof">
           <span><b>⌨</b> Type in supported apps</span>
           <span><b>↗</b> Local usage dashboard</span>
@@ -89,15 +101,42 @@
 
     <section class="trust-strip" aria-label="Product principles">
       <div class="marquee">
-        <span>VOICE → POLISHED TEXT</span><i></i><span>SUPPORTED MAC APPS</span><i></i><span>YOUR API KEY</span><i></i><span>ONE AUDIO MODEL</span><i></i><span>NO ANALYTICS</span><i></i><span>OPEN SOURCE</span>
+        <span>VOICE → POLISHED TEXT</span><i></i><span>NATIVE MAC + ANDROID</span><i></i><span>YOUR API KEY</span><i></i><span>ONE AUDIO MODEL</span><i></i><span>NO TRACKING BACKEND</span><i></i><span>OPEN SOURCE</span>
+      </div>
+    </section>
+
+
+    <section id="downloads" class="section-shell section-block">
+      <div class="section-heading reveal">
+        <div class="kicker">Choose your platform</div>
+        <h2>Separate downloads.<br>One shared voice core.</h2>
+        <p>Independent versions, platform-specific notes and checksums. Bring your own provider key; model usage is billed by your provider. No Windows build or automatic settings sync.</p>
+      </div>
+      <div class="platform-grid">
+        <article class="step-card platform-card reveal">
+          <div class="kicker">macOS 5.0.0 · Build 15</div>
+          <h3>Your Mac voice workflow</h3>
+          <p class="platform-summary">Menu-bar dictation, Fn hold/double-tap hands-free, reviewed voice edits, personal vocabulary, optional local live preview, history and cost estimates. Version 5.0.0 preserves the v4.8.0 features while packaging Mac and shared processing independently.</p>
+          <p><strong>Apple Silicon · macOS 14+</strong><br>Ad-hoc signed community-test ZIP, not Apple-notarized. Editor support depends on Accessibility; unverifiable edits use Copy recovery.</p>
+          <div class="hero-actions"><a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip">Download Mac ZIP</a></div>
+          <p><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">Mac release notes &amp; checksum →</a></p>
+        </article>
+        <article class="step-card platform-card reveal delay-one">
+          <div class="kicker">Android 1.0.0 · Version code 4</div>
+          <h3>Your keyboard, with a voice</h3>
+          <p class="platform-summary">English (India) QWERTY, full symbols including ₹, Shift/caps lock and an animated hold/double-tap mic. Review selected-text edits, configure your provider and optionally count typed-word estimates and final dictation output—locally, without storing typed text.</p>
+          <p><strong>ARM64 · Android 9+ · Signed APK</strong><br>Enable/select ChatterKey, allow the mic and save your API key. Remove old debug copies from all profiles before the first release install. Live release-mode voice/editor coverage is incomplete; no predictive typing or Mac-only history/cost dashboard.</p>
+          <div class="hero-actions"><a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK</a></div>
+          <p><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/android-v1.0.0">Android setup, privacy &amp; checksum →</a></p>
+        </article>
       </div>
     </section>
 
     <section id="how" class="section-shell section-block">
       <div class="section-heading reveal">
-        <div class="kicker">How it works</div>
+        <div class="kicker">The Mac workflow</div>
         <h2>From thought to finished text<br>in one natural flow.</h2>
-        <p>No separate editor. No copy-paste ritual. No translating in your head before you speak.</p>
+        <p>Dictate into a supported editor, or review a selected-text rewrite before applying. Use Copy recovery when automatic replacement cannot be verified.</p>
       </div>
 
       <div class="steps-grid">
@@ -128,7 +167,7 @@
     <section id="features" class="feature-section section-block">
       <div class="section-shell">
         <div class="section-heading feature-heading reveal">
-          <div class="kicker">Features</div>
+          <div class="kicker">macOS features</div>
           <h2>One voice. A smarter writing flow.</h2>
           <p>From spoken words to polished text—with AI that understands what you mean and how you write.</p>
         </div>
@@ -176,10 +215,10 @@
           <span><b>↗</b> Cost & usage dashboard</span><span><b>◷</b> Local history</span><span><b>⌁</b> Custom AI prompts</span><span><b>Aa</b> Eight writing modes</span><span><b>↵</b> Spoken formatting</span><span><b>◌</b> One configurable model</span><span><b>⌘</b> Clipboard restoration</span>
         </div>
 
-        <div class="release-highlights reveal" aria-label="New in ChatterKey version 4.8.0">
+        <div class="release-highlights reveal" aria-label="Mac features retained in version 5.0.0">
           <article>
             <span class="highlight-icon">↗</span>
-            <div><small>NEW IN 4.8.0</small><h3>Review before replacing</h3><p>Compare edits, acknowledge protected-value changes, then Apply, Copy or Discard. Unverifiable selections use manual recovery.</p></div>
+            <div><small>REVIEWABLE EDITS</small><h3>Review before replacing</h3><p>Compare edits, acknowledge protected-value changes, then Apply, Copy or Discard. Unverifiable selections use manual recovery.</p></div>
           </article>
           <article>
             <span class="highlight-icon">⌁</span>
@@ -187,7 +226,7 @@
           </article>
           <article>
             <span class="highlight-icon">◷</span>
-            <div><small>SHARED SWIFT CORE</small><h3>Native Mac. Separate core.</h3><p>Processing, prompts and edit checks live in a shared module. Mac recording and text access stay native. One model request; no Android app yet.</p></div>
+            <div><small>SHARED SWIFT CORE</small><h3>Native Mac. Separate core.</h3><p>Mac and Android use the same Swift processing, prompts and edit checks. Recording, permissions, text access and credentials stay native to each app. One model request per attempt.</p></div>
           </article>
         </div>
       </div>
@@ -243,11 +282,11 @@
         <div class="privacy-copy reveal">
           <div class="kicker">Built for ownership</div>
           <h2>Your voice workflow.<br>Your choices.</h2>
-          <p>ChatterKey is an open-source Mac utility—not another account, subscription, or closed transcription service.</p>
+          <p>ChatterKey is open-source software for Mac and Android—not another account or project-operated transcription service. Your selected provider processes voice requests under its own policies.</p>
           <div class="privacy-points">
-            <div><span>01</span><p><strong>Bring your own API key</strong>Your key stays in macOS Keychain.</p></div>
+            <div><span>01</span><p><strong>Bring your own API key</strong>Keys stay in macOS Keychain or Android Keystore-encrypted private storage.</p></div>
             <div><span>02</span><p><strong>No ChatterKey analytics</strong>No project-operated tracking or transcription backend.</p></div>
-            <div><span>03</span><p><strong>Local dashboard & history</strong>Usage metrics stay local; transcript history remains optional and audio is never stored there.</p></div>
+            <div><span>03</span><p><strong>Platform-specific local data</strong>Mac history is optional. Android counters are opt-in aggregates; typed text is not saved for counting, and Practice/private-marked fields are excluded.</p></div>
           </div>
         </div>
         <div class="privacy-visual reveal delay-one">
@@ -265,7 +304,7 @@
               <span class="provider-mark">1</span><span>One model</span>
             </a>
           </div>
-          <p>Audio and instructions go together to Google Direct or OpenRouter—only the connection you select. Keys stay separate in macOS Keychain.</p>
+          <p>Audio and instructions go together to Google Direct or OpenRouter—only the connection you select. Keys stay separate per connection, in each platform’s native credential storage.</p>
         </div>
       </div>
     </section>
@@ -274,12 +313,12 @@
       <div class="cta-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="kicker">Ready when you are</div>
       <h2>Stop translating your thoughts.<br>Start expressing them.</h2>
-      <p>Speak naturally. Write confidently—anywhere on your Mac.</p>
+      <p>Speak naturally. Review your words. Choose the native app for your device.</p>
       <div class="hero-actions centered">
-        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip" aria-label="Download ChatterKey version 4.8.0 ZIP for macOS">Download ChatterKey</a>
-        <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey">Explore the source</a>
+        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip" aria-label="Download ChatterKey version 5.0.0 ZIP for macOS">Download for macOS</a>
+        <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK</a>
       </div>
-      <small>Free and open source · macOS 14+ · Bring your own API key</small>
+      <small>Free and open source · macOS 14+ / Android 9+ · Provider usage billed separately</small>
     </section>
   </main>
 

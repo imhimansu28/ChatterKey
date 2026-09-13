@@ -1,0 +1,15 @@
+ChatterKey for Android — Privacy & data
+
+Normal typing stays on your phone. ChatterKey does not upload ordinary key presses or maintain a typed-text history. No advertising, tracking SDK or analytics server is included.
+
+When you intentionally start voice input, ChatterKey records up to two minutes of audio in memory. Your audio and configured instructions, vocabulary and snippets are sent over HTTPS to the selected provider: Google Direct or OpenRouter. A voice edit also sends the selected text. These providers process the request under their own account terms and data policies; ChatterKey cannot control provider retention. Only use a provider/account approved for the information you dictate.
+
+Each attempt makes one audio-model request. Cancel cannot recall a request already received by the provider. Retry is explicit, makes a new request and may incur another charge. Review, Apply, Copy and Discard do not call a model.
+
+API keys are encrypted with Android Keystore on this device. Provider settings and keys stay separate. Audio is not written to a recording file. Pending audio is held in memory for explicit Retry and released after completion, cancellation or editor invalidation. A completed proposal can remain in memory for Copy recovery until you dismiss it. Copy places text on the Android clipboard, where other permitted system/app features may access it. Voice never presses Send.
+
+Usage counters are optional and OFF by default. When enabled they store only local numeric aggregates: estimated typed-word runs, words in final dictation output, successful voice duration, dictations and voice edits. They do not store characters, audio or per-attempt history and do not read the editor document for counting. Voice output words are not an exact count of spoken words. Rewritten selections are counted as edits rather than dictation words.
+
+Declared password/unsupported fields are excluded from voice and counters. Fields marked by their app as no-personalized-learning, including ChatterKey settings and Practice, are excluded from counters. These protections depend on the editor declaring its field correctly. Plain text typed into a field an app fails to mark private cannot be identified as sensitive by ChatterKey.
+
+Dashboard offers opt-out and Clear usage. Clearing or changing consent invalidates pending voice counting; nothing is backfilled. Daily buckets older than 30 days are pruned when new usage is recorded. All-time totals persist until cleared. ChatterKey disables Android cloud backup and device-transfer backup for its app data. Uninstalling removes local settings, keys and counters; reinstall requires keyboard setup and re-entering your provider key. There is no automatic Mac synchronization.

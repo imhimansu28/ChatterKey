@@ -7,9 +7,16 @@ Please use GitHub Security Advisories to report vulnerabilities privately. Do no
 ## Secret handling
 
 - Never commit provider API keys, signing certificates, provisioning profiles, `.env` files, or exported Keychain data.
-- API keys must remain in macOS Keychain.
+- Provider API keys stay in macOS Keychain or Android Keystore-encrypted private preferences; never embed a shared key in a binary.
 - Use test credentials with minimal permissions when developing provider integrations.
 - Revoke a key immediately if it is exposed in a commit, issue, screenshot, log, or release artifact.
+
+## Android release identity
+
+- Keep the release keystore and password properties in the ignored `apps/android/signing/` directory, outside disposable caches, with owner-only permissions and an encrypted backup. Never commit or attach them to a release.
+- Release updates must retain the signing identity. Debug builds are not release updates; a leftover debug installation in any device profile can block a differently signed release APK.
+- Public certificate fingerprints and download checksums may be distributed. Neither contains the private signing key; a checksum alone is not publisher authentication.
+- Android usage counters are opt-in and aggregate-only. Do not collect typed text, audio, private drafts or real credentials for diagnostics. See [Privacy](PRIVACY.md).
 
 ## Provider endpoint safety
 
@@ -20,4 +27,4 @@ Please use GitHub Security Advisories to report vulnerabilities privately. Do no
 
 ## Supported versions
 
-Security fixes are provided for the latest release on the default branch.
+Security fixes target the latest macOS and Android release lines on the default branch. Platform tags use `macos-vX.Y.Z` and `android-vX.Y.Z`; older unprefixed tags are historical Mac releases. There is no Windows build.

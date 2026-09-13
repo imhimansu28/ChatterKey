@@ -36,3 +36,13 @@ AGENTS.md
 
 # Generated image workspace
 .generated-images/
+
+# Android local builds, device credentials and SDK configuration
+apps/android/.gradle/
+apps/android/local.properties
+apps/android/**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+apps/android/signing/

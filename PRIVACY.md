@@ -1,6 +1,6 @@
 # Privacy
 
-ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey account, analytics SDK, advertising SDK, or project-operated transcription server.
+ChatterKey provides a bring-your-own-key macOS dictation client and an Android keyboard, distributed in separate platform releases. The Mac behavior is described below; Android-specific handling is documented separately in this page. It has no ChatterKey account, analytics SDK, advertising SDK, or project-operated transcription server.
 
 ## Data that stays on the Mac
 
@@ -29,7 +29,7 @@ Audio is captured in a temporary local CAF file and converted to a 16 kHz mono W
 
 ## Permissions
 
-- **Microphone:** records dictation while the push-to-talk key is held.
+- **Microphone:** records during hold-to-talk or an explicitly started hands-free session until stopped or cancelled.
 - **Accessibility:** detects the global shortcut, reads explicitly selected text for Magic Voice Edit, and pastes replacements into the focused app.
 - **Speech Recognition:** optionally creates an on-device rough transcript for the live preview. The selected cloud provider still produces the final text.
 
@@ -38,6 +38,27 @@ ChatterKey does not intentionally read documents, browser history, passwords, or
 ## Logging
 
 The app does not intentionally log API keys, recorded audio, or transcript contents.
+
+## Android keyboard
+
+- Android requests microphone and internet permissions and must be explicitly enabled as a keyboard. Normal key presses are inserted locally, not sent to a provider or used for silent learning. Voice is disabled in declared password fields and unsupported raw-input fields; correct field classification also depends on the host app.
+- Holding the mic or double-tapping for hands-free records up to two minutes of 16 kHz mono WAV in memory. No audio file, transcript history or live-transcription service is implemented. Optional aggregate usage counters are described below. Cancel clears the active attempt; an explicit retry can retain failed audio in memory until cancellation or the editor session ends. Hiding/switching the keyboard cancels active recording/processing.
+- A completed recording and configured prompt/vocabulary go to the selected provider using the same single-model request logic as the Mac. An edit also includes the explicitly selected text. Up to 64 nearby characters on either side are captured locally for insertion verification and are not added to the provider request. No screenshot or whole document is collected.
+- Provider keys are encrypted with Android Keystore AES-GCM and stored as ciphertext in private preferences. Encryption binds each key to its provider. Google/OpenRouter model/settings and credentials remain separate; no keys are imported from the Mac. Settings such as prompts, vocabulary and snippets are ordinary local preferences, not separately encrypted. App backup is disabled, with explicit Android 12+ cloud/device-transfer exclusions.
+- The settings window blocks normal screenshots and credential view-state/autofill storage. This does not protect against a compromised device or independently trusted accessibility services.
+- Review data remains in process memory. Completed proposals may remain available for Copy after editor invalidation but cannot be applied into the new session. Apply, Copy and Discard clear the pending result; process death also loses recovery data. Discard or cancellation cannot undo provider processing already started.
+- Only an explicit Copy action writes a generated result to the system clipboard, marked sensitive. Other apps/system clipboard features may still access or retain copied text; ChatterKey does not automatically erase or restore that copied result.
+- Voice insertion uses the editor connection and never invokes Send/Enter. The keyboard's separately pressed manual action key may send a message when the host editor requests that action.
+
+### Optional Android usage counters
+
+Usage counting is **disabled by default**. The Dashboard opt-in enables local totals for estimated manually typed word runs, final dictation output words, successful dictations/voice edits, and successful-request audio duration. Only ChatterKey's accepted key taps contribute to typing estimates; no surrounding document is read for counting. Word-run state is a transient boolean, not stored text or a key sequence. Deletions/cursor edits are not reconciled against the document, so this is not a net document word count. Voice output is also not the exact spoken-word count.
+
+Declared password fields, unsupported fields, and editors requesting Android's no-personalized-learning/private flag are excluded. ChatterKey's settings and practice editors request that flag too. Incognito recognition relies on the host editor marking the field; ChatterKey does not inspect app/browser contents to infer it.
+
+A separate private preferences file stores numeric totals, local-date daily buckets, the consent toggle and a reset revision. It stores no text, audio, app identity, clipboard contents or per-attempt history. No new network request or telemetry is introduced. Daily buckets older than 30 days are pruned when new activity is counted; all-time totals remain until explicitly cleared. Backup exclusions apply to these preferences as well. Turning counting off retains existing totals; Clear Usage removes them without changing keys/settings and prevents pre-reset in-flight attempts from re-adding counts. There is no import or backfill of previous Android/Mac activity.
+
+Installation and launch of the signed Android release were verified on one physical ARM64 phone. Live provider/editor behavior and lifecycle edge cases are not exhaustively validated. See `apps/android/README.md` for supported scope and the test checklist. Provider retention policies apply independently on both platforms.
 
 ## Reporting a privacy issue
 
