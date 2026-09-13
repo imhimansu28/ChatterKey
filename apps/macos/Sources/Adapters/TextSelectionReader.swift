@@ -13,6 +13,11 @@ enum TextSelectionReader {
         let element: AXUIElement?
         let range: CFRange?
 
+        var supportsVerifiedReplacement: Bool {
+            guard element != nil, let range, range.location >= 0, range.length > 0 else { return false }
+            return range.length <= Int.max - range.location
+        }
+
         var isCurrent: Bool {
             guard NSWorkspace.shared.frontmostApplication?.processIdentifier == processIdentifier else { return false }
             guard let element else { return true }

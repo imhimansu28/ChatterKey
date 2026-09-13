@@ -8,7 +8,14 @@ ChatterKey is a bring-your-own-key macOS dictation client. It has no ChatterKey 
 - Preferences such as provider, model ID, processing options, vocabulary, snippets, and custom system instructions are stored in `UserDefaults`.
 - Dashboard records store local aggregate metadata such as date, provider/model names, word count, audio duration, estimated cost, and generated speaking suggestions. New suggestions do not quote arbitrary transcript phrases, and no audio is stored there. Older versions may have saved short repeated phrases inside suggestions; use **Dashboard → Clear Usage** to remove existing records.
 - The last transcript exists in app memory for recovery and is not written to the repository or a project server.
+- In the edit-review workflow, original/proposed text, highlights, and protected-value warnings are computed locally and held in memory. Apply or Copy can save the proposal to optional transcript history; Discard/window close clears the pending review without adding it to history. Discard does not reverse the provider request or its aggregate usage record.
 - ChatterKey temporarily uses the clipboard to paste generated text and, when Accessibility selection attributes are unavailable, to try copying the selection at the start of dictation. It attempts to restore the previous clipboard contents. Selection behavior depends on the focused app.
+
+## Recording controls
+
+Holding the configured shortcut starts recording; releasing it finishes the attempt. With Fn selected, a quick double-tap instead keeps recording hands-free until Fn is pressed again, Stop & Process is used, or Escape cancels. A short first Fn tap includes a 350 ms grace period for double-tap recognition. Changing the shortcut or losing the event tap cancels an active recording. The overlay indicates hands-free recording; it does not automatically stop merely because the key has been released.
+
+Audio processing still uses one model request per completed attempt. Locking/unlocking the recording does not introduce a second model request; cancelling before processing does not send the recording for model processing.
 
 ## Data sent to providers
 

@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import Foundation
 
 nonisolated enum UsageStore {

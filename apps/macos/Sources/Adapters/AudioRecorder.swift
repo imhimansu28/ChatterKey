@@ -153,6 +153,14 @@ final class AudioRecorder {
         }
     }
 
+    // Keep file I/O off the UI actor and outside the shared processing core.
+    nonisolated static func readPreparedAudio(at url: URL) async throws -> Data {
+        try Task.checkCancellation()
+        let audio = try Data(contentsOf: url)
+        try Task.checkCancellation()
+        return audio
+    }
+
     nonisolated static func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL) throws {
         let inputFile = try AVAudioFile(forReading: sourceURL)
         guard inputFile.length > 0,

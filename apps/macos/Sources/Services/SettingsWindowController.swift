@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import AppKit
 import SwiftUI
 
@@ -33,7 +34,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func insert(_ item: DictationHistoryItem, appState: AppState) {
-        guard appState.phase != .listening && appState.phase != .processing else { return }
+        guard !appState.phase.isBusy else { return }
         guard let previousApp, !previousApp.isTerminated else {
             appState.copy(item.text)
             return

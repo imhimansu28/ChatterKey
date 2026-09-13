@@ -1,18 +1,18 @@
 import Foundation
 
-nonisolated enum UsageAnalytics {
-    static func wordCount(_ text: String) -> Int {
+nonisolated package enum UsageAnalytics {
+    package static func wordCount(_ text: String) -> Int {
         text.split { $0.isWhitespace || $0.isNewline }.count
     }
 
-    static func estimatedCost(
+    package static func estimatedCost(
         durationSeconds: Double,
         finalText: String,
-        settings: ProviderSettings,
+        settings: any ProcessingSettings,
         selectedText: String? = nil
     ) -> Double {
         let audioTokens = max(durationSeconds, 0) * 32
-        let prompt = ProviderClient(settings: settings, apiKey: "").processingPrompt(editing: selectedText)
+        let prompt = ProcessingPrompt.build(settings: settings, editing: selectedText)
         let promptTokens = Double(wordCount(prompt) + wordCount(selectedText ?? "")) * 1.35
         let outputTokens = Double(wordCount(finalText)) * 1.35
         // The rough live transcript is not sent to the model and must not be billed again.
@@ -21,7 +21,7 @@ nonisolated enum UsageAnalytics {
             + outputTokens / 1_000_000 * settings.costRates.outputPerMillionTokens
     }
 
-    static func suggestions(for text: String) -> [String] {
+    package static func suggestions(for text: String) -> [String] {
         let words = normalizedWords(text)
         guard words.count >= 5 else { return [] }
         var results: [String] = []

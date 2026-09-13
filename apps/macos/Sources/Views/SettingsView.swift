@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Identifiable {
@@ -253,8 +254,8 @@ struct SettingsView: View {
                     .font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
 
-            settingsCard("Push to talk", icon: "keyboard") {
-                settingRow("Shortcut", detail: "Hold to record, release to insert") {
+            settingsCard("Recording shortcut", icon: "keyboard") {
+                settingRow("Shortcut", detail: draft.hotkeyShortcut.recordingInstructions) {
                     Picker("", selection: $draft.hotkeyShortcut) {
                         ForEach(HotkeyShortcut.allCases) { shortcut in
                             Text("\(shortcut.title)  ·  \(shortcut.symbols)").tag(shortcut)
@@ -430,7 +431,7 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 ScrollView {
-                    Text(ProviderClient(settings: draft, apiKey: "").effectiveProcessingPrompt)
+                    Text(ProcessingPrompt.build(settings: draft))
                         .font(.system(size: 10.5, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -792,7 +793,7 @@ struct SettingsView: View {
     private func testConnection() {
         isTesting = true
         status = "Testing connection…"
-        let client = ProviderClient(settings: draft, apiKey: apiKey)
+        let client = ProviderClient(settings: draft, apiKey: apiKey, transport: ProviderTransport.send)
         Task {
             do {
                 try await client.testConnection()

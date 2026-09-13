@@ -8,9 +8,14 @@ let package = Package(
         .executable(name: "ChatterKey", targets: ["ChatterKey"])
     ],
     targets: [
+        .target(
+            name: "ChatterKeyCore",
+            path: "core/Sources/ChatterKeyCore"
+        ),
         .executableTarget(
             name: "ChatterKey",
-            path: "Sources/ChatterKey"
+            dependencies: ["ChatterKeyCore"],
+            path: "apps/macos/Sources"
         )
     ]
 )

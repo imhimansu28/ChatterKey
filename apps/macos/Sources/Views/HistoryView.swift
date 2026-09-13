@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import SwiftUI
 
 struct HistoryView: View {
@@ -134,7 +135,7 @@ struct HistoryView: View {
                 Image(systemName: "arrow.turn.down.left")
             }
             .help("Insert in the focused app")
-            .disabled(appState.phase == .listening || appState.phase == .processing)
+            .disabled(appState.phase.isBusy)
         }
         .padding(14)
         .background(

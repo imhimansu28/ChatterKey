@@ -4,7 +4,25 @@ All notable changes to ChatterKey are documented here, version by version.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.8.0] - 2026-09-13
+
+### Added
+
+- Fn double-tap starts hands-free recording; pressing Fn again stops and processes the audio. Holding Fn remains hold-to-talk, and Escape cancels an active recording. A short single Fn tap waits briefly for a possible second tap before processing.
+- Hands-free status and stop instructions appear in the recording overlay and menu. Shortcut changes, manual Stop, startup failures, and event-tap interruptions clear pending taps and recording locks.
+- Gesture recognition uses physical event timestamps so delayed callback delivery does not misread a double-tap as a hold. Local regression fixtures cover delayed delivery and overdue timers without using the microphone or posting system-wide keys.
+- Preview recovery distinguishes missing editable-selection information from moved focus. A temporary focus change no longer permanently disables Apply when the original selection has a verifiable range; the original target/text are still checked before paste.
+- Selected-text voice edits pause at a review window with literal before/after highlighting, Apply to Original, Copy & Close, and Discard. Large selections use a bounded changed-passage comparison.
+- Local warnings compare detected numbers, email addresses, and HTTP(S)/www URL values and occurrence counts; Apply requires acknowledgement when they differ. These checks are heuristic, not factual or semantic validation.
+- Apply rechecks the original target and selection. An unverifiable or changed target retains the proposed text for manual Copy recovery without another model request.
+- Pending reviews block new dictation/history insertion, release retry audio after processing, and remain memory-only until Apply or Copy saves to optional history. Discard does not remove usage already incurred by the request.
+- An ordered roadmap for language controls, app preferences, approved corrections, attempt details, and Android development gated on explicit approval and a system-resource plan.
+
+### Changed
+
+- Separate the native Mac application and resources into `apps/macos` and extract `ChatterKeyCore` as a real Swift module. Shared processing, prompts, edit checks and usage calculations no longer depend on native app settings/storage or microphone APIs.
+- Inject the Mac HTTP transport explicitly and keep completed-audio file reads in the native recorder adapter. Preserve timeout/redirect policy, existing settings/history formats and one model request per attempt.
+- Update packaging, public-source checks and the existing regression harness for the split layout. No Android code, tooling or bridge is included.
 
 ## [4.6.1] - 2026-09-12
 
@@ -208,7 +226,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Temporary audio cleanup and public-source safety checks.
 - Privacy, security, distribution, and MIT license documentation.
 
-[Unreleased]: https://github.com/imhimansu28/ChatterKey/compare/v4.6.1...HEAD
+[4.8.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.8.0
 [4.6.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.1
 [4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0

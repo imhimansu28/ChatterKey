@@ -42,10 +42,10 @@ struct DictationPillView: View {
 
     private var showsText: Bool {
         switch appState.phase {
-        case .failed, .pasteSent:
+        case .failed, .pasteSent, .reviewing:
             return true
         case .listening, .processing:
-            return appState.magicEditActive || !appState.liveTranscript.isEmpty
+            return appState.handsFreeRecording || appState.magicEditActive || !appState.liveTranscript.isEmpty
         default:
             return false
         }
@@ -55,11 +55,13 @@ struct DictationPillView: View {
 
     private var displayText: String {
         if case .failed(let message) = appState.phase { return message }
+        if appState.phase == .reviewing { return "Open Review Edit from the menu to apply, copy, or discard." }
         if appState.phase == .pasteSent { return "Check the target app; Copy is available in the menu." }
+        if appState.handsFreeRecording { return "Press Fn to stop · Esc to cancel" }
         if !appState.liveTranscript.isEmpty { return appState.liveTranscript }
         if appState.magicEditActive {
             return appState.phase == .processing
-                ? "Applying your voice edit…"
+                ? "Preparing your voice edit…"
                 : "Say how you want to change the selection"
         }
         return ""
@@ -68,6 +70,8 @@ struct DictationPillView: View {
     private var statusLabel: String {
         if case .failed = appState.phase { return "NEEDS ATTENTION" }
         if appState.phase == .pasteSent { return "PASTE SENT" }
+        if appState.phase == .reviewing { return "REVIEW EDIT" }
+        if appState.handsFreeRecording { return appState.magicEditActive ? "HANDS-FREE VOICE EDIT" : "HANDS-FREE RECORDING" }
         if appState.magicEditActive { return "VOICE EDIT" }
         return appState.phase == .processing ? "POLISHING" : "LIVE TRANSCRIPT"
     }
@@ -78,6 +82,8 @@ struct DictationPillView: View {
             ListeningWaveformView()
         case .processing:
             ProcessingDotsView()
+        case .reviewing:
+            statusIcon("doc.text.magnifyingglass", color: .indigo)
         case .pasteSent:
             statusIcon("paperplane.fill", color: .indigo)
         case .failed:
@@ -94,6 +100,7 @@ struct DictationPillView: View {
         case .idle: "idle"
         case .listening: "listening"
         case .processing: "processing"
+        case .reviewing: "reviewing"
         case .pasteSent: "pasteSent"
         case .failed: "failed"
         }

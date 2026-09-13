@@ -2,9 +2,9 @@
 
 The development script creates an ad-hoc signed app for local testing. Do not present that build as a trusted public macOS release.
 
-## v4.6.1 community-test download
+## v4.8.0 community-test download
 
-- Version `4.6.1`, build `11`; macOS 14 or later.
+- Version `4.8.0`, build `14`; macOS 14 or later.
 - The published ZIP is built for Apple Silicon (`arm64`), not a universal Intel/Apple Silicon binary.
 - Ad-hoc signed, not Developer ID signed, not hardened/notarized, and not verified on a clean Mac account. Gatekeeper may block it. Do not describe it as a trusted production release or disable system-wide security protections to install it.
 - A SHA-256 checksum accompanies the ZIP to verify download integrity; it does not establish Apple approval or publisher identity.
@@ -33,7 +33,7 @@ The development script creates an ad-hoc signed app for local testing. Do not pr
 
 The onboarding and release page should clearly explain that:
 
-- Microphone access records only during push-to-talk.
+- Hold-to-talk and Fn double-tap hands-free recording are both available; hands-free recording continues until stopped or cancelled.
 - Accessibility access is required for the global shortcut and automatic paste.
 - Cloud mode sends audio and instructions to the selected connection: Google Direct or OpenRouter. Selected text is included only for Magic Voice Edit.
 - Provider retention, training, and regional processing policies apply separately.

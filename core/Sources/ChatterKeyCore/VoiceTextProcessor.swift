@@ -1,7 +1,7 @@
 import Foundation
 
-nonisolated enum VoiceTextProcessor {
-    static func process(_ text: String, settings: ProviderSettings) -> String {
+nonisolated package enum VoiceTextProcessor {
+    package static func process(_ text: String, settings: any ProcessingSettings) -> String {
         guard settings.outputMode != .verbatim else { return text }
         var output = text
         if settings.spokenCommandsEnabled {

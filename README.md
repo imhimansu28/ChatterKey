@@ -4,7 +4,7 @@
 
 <h1 align="center">ChatterKey</h1>
 <p align="center"><strong>Native AI voice typing for macOS.</strong></p>
-<p align="center">Hold <kbd>Fn</kbd>, speak naturally, and release. ChatterKey prepares polished text and inserts it into the app you are already using.</p>
+<p align="center">Hold <kbd>Fn</kbd> to talk, or double-tap for hands-free recording. ChatterKey prepares polished text and inserts it into the app you are already using.</p>
 
 <p align="center">
   <a href="https://github.com/imhimansu28/ChatterKey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/imhimansu28/ChatterKey?style=flat-square&color=5b5ce2"></a>
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.6.1/ChatterKey-v4.6.1.zip">Download for macOS</a></strong>
+  <strong><a href="https://github.com/imhimansu28/ChatterKey/releases/download/v4.8.0/ChatterKey-v4.8.0.zip">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <a href="https://imhimansu28.github.io/ChatterKey/">Product website</a>
   &nbsp;·&nbsp;
@@ -24,14 +24,35 @@
 > [!IMPORTANT]
 > ChatterKey is bring-your-own-key software. Audio and processing instructions go to Google Direct or OpenRouter, depending on your selected connection—there is no ChatterKey account, analytics SDK, or project-operated transcription proxy.
 
-## New in v4.6.1 — Selection and clipboard reliability
+## New in v4.8.0 — Review edits. Record hands-free. Shared core.
 
-- Nonblocking selection capture, corrected Accessibility fallbacks, and original-target checks before pasting.
-- Safer clipboard cleanup, shortcut releases, cancellation, and explicit Retry handling.
-- Literal quotes/code preserved, non-recursive snippets, persistent history cleanup, and bounded audio conversion.
-- Clear errors and “Paste sent” feedback rather than claiming every app confirmed insertion.
+- Review selected-text edits before Apply, with protected-value warnings and Copy/Discard recovery.
+- Double-tap Fn for hands-free recording; press Fn again to stop. Hold-to-talk remains available.
+- More reliable recording resets and clearer explanations when a selection cannot be verified.
+- Native Mac code now lives in `apps/macos`, with reusable processing in `ChatterKeyCore`. No Android implementation is included.
 
-Read the [v4.6.1 release notes](docs/releases/v4.6.1.md) and [full changelog](CHANGELOG.md#461---2026-09-12), including validation and compatibility limits.
+Read the [v4.8.0 release notes](docs/releases/v4.8.0.md) and [full changelog](CHANGELOG.md#480---2026-09-13), including validation and compatibility limits.
+
+### Recording controls
+
+With **Settings → General → Recording shortcut → Fn** selected:
+
+- **Hold Fn:** speak while holding, then release to process.
+- **Double-tap Fn:** keep recording hands-free; **press Fn again** or use **Stop & Process** to finish.
+- **Escape:** cancel recording without sending a processing request.
+- A short first Fn tap waits 350 ms for a second tap; ordinary longer holds stop on release. Other shortcuts remain hold-to-talk.
+- Hands-free recording continues until stopped or cancelled. The overlay displays the stop/cancel controls. Reconfiguring the shortcut or losing the event tap cancels rather than leaving recording stuck.
+
+Only ChatterKey has changed; no integration or modifications to other applications are required by this build. This does not establish universal selected-text replacement compatibility. The download remains an ad-hoc signed, non-notarized community-test package.
+
+### Selected-text review
+
+- Compare the original and proposed text before choosing **Apply to Original**, **Copy & Close**, or **Discard**. Closing the review also discards it.
+- Acknowledge detected changes to numbers, email addresses, and HTTP(S)/www URLs before applying. Checks compare literal values and occurrence counts, not factual correctness or meaning; always review the text. URL-adjacent punctuation is kept conservatively and can trigger a warning for an intentional formatting change.
+- Apply rechecks the original field, range, and selection. Apps without sufficient Accessibility information use manual Copy recovery instead. There is no automatic retargeting or extra model request.
+- Normal dictation keeps its direct-insertion flow. Review data stays in memory; discarded proposals are not added to transcript history. The provider request and its local usage record have already occurred.
+
+See the [ordered product roadmap](ROADMAP.md) for Hindi/Hinglish controls, app-specific preferences, approved corrections, attempt details, and the approval-gated Android keyboard plan.
 
 ## Google Direct setup
 
@@ -50,10 +71,10 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 - **Google Direct:** `gemini-3.5-flash-lite` with your Gemini API key.
 - **OpenRouter:** `google/gemini-3.5-flash-lite` with your OpenRouter key, or another supported audio model.
 - Existing OpenRouter installations retain their connection, model, and rates. Switching to Google Direct is explicit.
-- Google Direct was introduced in [v4.6.0](docs/releases/v4.6.0.md); v4.6.1 keeps the same single-model architecture.
+- Google Direct was introduced in [v4.6.0](docs/releases/v4.6.0.md); v4.8.0 keeps the same single-model architecture.
 
 > [!WARNING]
-> The downloadable v4.6.1 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
+> The downloadable v4.8.0 app is an **Apple Silicon (arm64) community-test build**, ad-hoc signed and **not Apple-notarized**. It is not a Developer ID-signed production build. Requires macOS 14 or later. Review [distribution limitations](DISTRIBUTION.md) before installing.
 
 ## See it in action
 
@@ -80,7 +101,7 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 
 ### 🎙 Capture and write
 
-- Configurable hold-to-talk shortcut
+- Configurable hold-to-talk shortcut and Fn double-tap hands-free recording
 - Optional on-device live transcript preview
 - Automatic insertion into the focused app
 - Eight writing modes, including professional, concise, technical, bullets, translation, and verbatim
@@ -90,9 +111,9 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 
 ### ✨ Edit with your voice
 
-- Select existing text in any accessible app
+- Select existing text in a supported editable app
 - Hold the shortcut and speak an instruction
-- Rewrite, translate, shorten, expand, or reformat in place
+- Review the proposed rewrite, then Apply to Original or Copy manually
 - Preserve names, URLs, filenames, commands, and technical terms
 
 </td>
@@ -126,7 +147,7 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 1. **Download** the latest release and move `ChatterKey.app` to Applications.
 2. **Connect your provider** with its own API key: Google Direct (default for new installs) or OpenRouter.
 3. **Allow permissions** for Microphone and Accessibility. Speech Recognition is optional for live preview.
-4. **Hold your shortcut**, speak, then release to process and insert the result.
+4. **Hold your shortcut**, speak, then release—or double-tap Fn, speak hands-free, and press Fn again to finish. Selected-text edits pause for review.
 
 > [!TIP]
 > Start with `Translate to English` for multilingual speech, `Professional` for workplace writing, or `Technical` when dictating developer content.
@@ -135,7 +156,7 @@ Google Direct and OpenRouter each use **one selected audio model per attempt** f
 
 Magic Voice Edit uses the **active selection in the focused app**, not text copied earlier. Keep the original field and selection in place until processing finishes. Read-only content cannot be replaced in place, and some apps expose limited Accessibility information.
 
-Version 4.6.1 makes selection capture nonblocking and rechecks the original target before pasting. “Paste sent” means the paste event was dispatched, not that the target app confirmed insertion. Clipboard restoration is best-effort: an external app can process a copy or paste after the bounded wait. Review the result and use **Copy transcript** if necessary.
+Selection capture is nonblocking, and the original target is rechecked before pasting. “Paste sent” means the paste event was dispatched, not that the target app confirmed insertion. Clipboard restoration is best-effort: an external app can process a copy or paste after the bounded wait. Review the result and use **Copy transcript** if necessary.
 
 ## How it works
 
@@ -178,7 +199,7 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 
 | Version | Released | Links |
 | --- | --- | --- |
-| `v4.6.1` | September 12, 2026 | [Release notes][release-v4.6.1] · [Detailed changes](CHANGELOG.md#461---2026-09-12) |
+| `v4.8.0` | September 12, 2026 | [Release notes][release-v4.8.0] · [Detailed changes](CHANGELOG.md#461---2026-09-12) |
 | `v4.6.0` | September 12, 2026 | [Release notes][release-v4.6.0] · [Detailed changes](CHANGELOG.md#460---2026-09-12) |
 | `v4.5.0` | September 8, 2026 | [Release notes][release-v4.5.0] · [Detailed changes](CHANGELOG.md#450---2026-09-08) |
 | `v0.4.0` | August 25, 2026 | [Release notes][release-v0.4.0] · [Detailed changes](CHANGELOG.md#040---2026-08-25) |
@@ -199,6 +220,23 @@ Detailed changes stay in [CHANGELOG.md](CHANGELOG.md). Use these links for relea
 - Microphone and Accessibility permissions
 - Optional Speech Recognition permission for live preview
 - A Gemini API key for Google Direct, or an OpenRouter API key for OpenRouter
+
+### Source layout
+
+```text
+Package.swift                    # One Swift package, separate build targets
+core/Sources/ChatterKeyCore/      # Shared processing and value models
+apps/macos/Sources/               # Native app, settings and UI
+apps/macos/Sources/Adapters/      # Mic, shortcuts, text access, storage and HTTP transport
+apps/macos/Resources/             # Mac app icons
+Scripts/                         # Root-level build, package and regression commands
+```
+
+The Mac executable depends on `ChatterKeyCore`; the core does not depend on the app. It owns provider request construction/response parsing, prompts, writing modes, snippets, edit diffs, protected-value checks and estimated usage. The Mac app supplies completed WAV bytes, a settings value conforming to `ProcessingSettings`, and an explicit HTTP transport. Settings migrations, Keychain access, audio capture, live speech preview, Fn gestures, editor verification and window lifecycle stay native.
+
+The core is currently a Swift module with package-scoped interfaces, not a cross-language SDK or a server. No Android project, Kotlin tooling, mobile bridge or automatic sync is included. Future mobile integration still requires a separate design and approval. This refactor does not change the installed application's settings keys, bundle identity or one-model-request-per-attempt policy.
+
+Run `bash Scripts/test-models.sh` to compile the core as a separate module and exercise the existing local/provider regressions through that boundary. Root-level build commands remain unchanged.
 
 ### Build and install
 
@@ -252,7 +290,7 @@ Bug reports, feature ideas, documentation improvements, and focused pull request
 
 MIT — see [LICENSE](LICENSE).
 
-[release-v4.6.1]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.1
+[release-v4.8.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.8.0
 [release-v4.6.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.6.0
 [release-v4.5.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v4.5.0
 [release-v0.4.0]: https://github.com/imhimansu28/ChatterKey/releases/tag/v0.4.0

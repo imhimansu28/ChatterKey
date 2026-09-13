@@ -1,7 +1,10 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
-nonisolated enum ProviderEndpointPolicy {
-    static func baseURL(for settings: ProviderSettings) throws -> URL {
+nonisolated package enum ProviderEndpointPolicy {
+    package static func baseURL(for settings: any ProcessingSettings) throws -> URL {
         switch settings.provider {
         case .google, .openAI, .openRouter:
             guard let url = URL(string: settings.provider.defaultBaseURL) else {
@@ -39,11 +42,11 @@ nonisolated enum ProviderEndpointPolicy {
     }
 }
 
-nonisolated enum ProviderEndpointError: LocalizedError {
+nonisolated package enum ProviderEndpointError: LocalizedError {
     case invalidURL
     case insecureURL
 
-    var errorDescription: String? {
+    package var errorDescription: String? {
         switch self {
         case .invalidURL:
             "Enter a valid provider base URL without credentials, query parameters, or fragments."

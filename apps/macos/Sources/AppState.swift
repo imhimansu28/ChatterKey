@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import AppKit
 import AVFoundation
 import Foundation
@@ -7,9 +8,12 @@ final class AppState: ObservableObject {
     static let shared = AppState()
 
     @Published var phase: DictationPhase = .idle
+    @Published private(set) var editPreview: EditPreview?
+    @Published private(set) var editPreviewMessage: String?
     @Published var lastTranscript = ""
     @Published var liveTranscript = ""
     @Published var magicEditActive = false
+    @Published private(set) var handsFreeRecording = false
     @Published var settings: ProviderSettings
     @Published var history: [DictationHistoryItem]
     @Published var usageRecords: [UsageRecord]
@@ -43,9 +47,20 @@ final class AppState: ObservableObject {
         onboardingComplete = UserDefaults.standard.bool(forKey: Self.onboardingKey)
 
         hotkey.configure(loadedSettings.hotkeyShortcut)
-        hotkey.onPress = { [weak self] in self?.beginDictation() }
+        hotkey.onPress = { [weak self] in
+            guard let self else { return }
+            if self.phase == .listening { self.finishDictation() } else { self.beginDictation() }
+        }
         hotkey.onRelease = { [weak self] in self?.finishDictation() }
         hotkey.onCancel = { [weak self] in self?.cancel() }
+        hotkey.onHandsFree = { [weak self] in
+            guard let self else { return }
+            guard self.phase == .listening else {
+                self.hotkey.resetRecordingGesture()
+                return
+            }
+            self.handsFreeRecording = true
+        }
     }
 
     var hasAPIKey: Bool { !apiKey(for: settings.provider).isEmpty }
@@ -119,7 +134,7 @@ final class AppState: ObservableObject {
                 result = DiagnosticItem(id: "provider", title: "Provider connection", state: .failed, detail: "API key is missing")
             } else {
                 do {
-                    try await ProviderClient(settings: currentSettings, apiKey: key).testConnection()
+                    try await ProviderClient(settings: currentSettings, apiKey: key, transport: ProviderTransport.send).testConnection()
                     result = DiagnosticItem(id: "provider", title: "Provider connection", state: .passed, detail: "Connected")
                 } catch {
                     result = DiagnosticItem(id: "provider", title: "Provider connection", state: .failed, detail: error.localizedDescription)
@@ -137,7 +152,10 @@ final class AppState: ObservableObject {
     }
 
     func beginDictation() {
-        guard phase != .listening && phase != .processing else { return }
+        guard !phase.isBusy else {
+            hotkey.resetRecordingGesture()
+            return
+        }
         refreshPermissions()
         guard accessibilityGranted else {
             requestPermissions()
@@ -167,6 +185,8 @@ final class AppState: ObservableObject {
                 self.liveTranscript = text
             }
             phase = .listening
+            handsFreeRecording = false
+            hotkey.recordingStarted()
             let target = insertionTarget
             selectionTask = Task { [weak self] in
                 guard let target else { return nil }
@@ -183,6 +203,8 @@ final class AppState: ObservableObject {
 
     func finishDictation() {
         guard phase == .listening else { return }
+        hotkey.resetRecordingGesture()
+        handsFreeRecording = false
         guard let url = recorder.stop() else {
             selectionTask?.cancel()
             fail("The recording could not be prepared for transcription. Please retry.")
@@ -197,7 +219,65 @@ final class AppState: ObservableObject {
         processAudio(at: retryAudioURL, spokenDraft: liveTranscript)
     }
 
+    var canApplyEditPreview: Bool {
+        phase == .reviewing && editPreview != nil && insertionTarget?.supportsVerifiedReplacement == true
+    }
+
+    func showEditPreview() {
+        guard phase == .reviewing else { return }
+        EditPreviewWindowController.shared.show(appState: self)
+    }
+
+    func discardEditPreview() {
+        guard phase == .reviewing, editPreview != nil else { return }
+        cancel()
+    }
+
+    func copyEditPreview() {
+        guard phase == .reviewing, let preview = editPreview else { return }
+        guard copy(preview.proposed) else {
+            editPreviewMessage = "The clipboard could not be updated. Your edit is still here. Try Copy & Close again, or select and copy the proposed text manually."
+            showEditPreview()
+            return
+        }
+        lastTranscript = preview.proposed
+        addHistory(preview.proposed, mode: preview.outputMode)
+        cancel()
+    }
+
+    func applyEditPreview(acknowledgingValueChanges: Bool) {
+        guard canApplyEditPreview, let preview = editPreview, let target = insertionTarget,
+              preview.allowsApply(acknowledgingValueChanges: acknowledgingValueChanges) else { return }
+        phase = .processing
+        EditPreviewWindowController.shared.hide()
+        processingTask?.cancel()
+        processingTask = Task {
+            do {
+                try Task.checkCancellation()
+                guard let app = NSRunningApplication(processIdentifier: target.processIdentifier),
+                      !app.isTerminated, app != NSRunningApplication.current,
+                      app.activate(options: [.activateAllWindows]) else { throw InsertError.targetChanged }
+                // Activation is asynchronous. Never take a new target after review;
+                // the original AX field, range, and text must still match.
+                try await Task.sleep(for: .milliseconds(200))
+                try await TextInserter.insert(preview.proposed, into: target, replacing: preview.original)
+                try Task.checkCancellation()
+                editPreview = nil
+                editPreviewMessage = nil
+                try await finishPaste(preview.proposed, mode: preview.outputMode)
+            } catch {
+                guard !Task.isCancelled else { return }
+                insertionTarget = nil
+                editPreviewMessage = "\(error.localizedDescription) Your edit has not been applied. Use Copy & Close, then select the intended text and paste manually. No new model request is needed."
+                phase = .reviewing
+                showEditPreview()
+            }
+        }
+    }
+
     func cancel() {
+        hotkey.resetRecordingGesture()
+        handsFreeRecording = false
         processingTask?.cancel()
         failureDismissTask?.cancel()
         selectionTask?.cancel()
@@ -208,6 +288,9 @@ final class AppState: ObservableObject {
         liveTranscript = ""
         magicEditActive = false
         insertionTarget = nil
+        editPreview = nil
+        editPreviewMessage = nil
+        EditPreviewWindowController.shared.hide()
         OverlayController.shared.hide()
     }
 
@@ -216,13 +299,14 @@ final class AppState: ObservableObject {
         copy(lastTranscript)
     }
 
-    func copy(_ text: String) {
+    @discardableResult
+    func copy(_ text: String) -> Bool {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        return NSPasteboard.general.setString(text, forType: .string)
     }
 
     func insert(_ item: DictationHistoryItem) {
-        guard phase != .listening && phase != .processing else { return }
+        guard !phase.isBusy else { return }
         guard let target = TextSelectionReader.target() else {
             copy(item.text)
             fail("No target app is focused. The transcript was copied to your clipboard.")
@@ -321,12 +405,12 @@ final class AppState: ObservableObject {
             do {
                 let editingText = try await selectionTask?.value
                 try Task.checkCancellation()
-                let final = try await ProviderClient(settings: currentSettings, apiKey: key).process(
-                    audioURL: url,
+                let audio = try await AudioRecorder.readPreparedAudio(at: url)
+                let final = try await ProviderClient(settings: currentSettings, apiKey: key, transport: ProviderTransport.send).process(
+                    audio: audio,
                     editing: editingText
                 )
                 try Task.checkCancellation()
-                lastTranscript = final
                 addUsage(
                     finalText: final,
                     spokenText: spokenDraft,
@@ -334,9 +418,31 @@ final class AppState: ObservableObject {
                     settings: currentSettings,
                     selectedText: editingText
                 )
+                if let editingText {
+                    let preview = await Task.detached(priority: .userInitiated) {
+                        EditPreview(original: editingText, proposed: final, outputMode: currentSettings.outputMode)
+                    }.value
+                    try Task.checkCancellation()
+                    editPreview = preview
+                    if let target, target.supportsVerifiedReplacement {
+                        editPreviewMessage = target.isCurrent ? nil
+                            : "Focus moved while processing. Apply will return to the original app and recheck the selected text before replacing it. If the selection changed, use Copy & Close."
+                    } else {
+                        insertionTarget = nil
+                        editPreviewMessage = "The selected text was captured, but its editable selection range could not be verified through Accessibility. This does not mean you changed the selection. Use Copy & Close and paste into the intended selection manually."
+                    }
+                    removeRetryAudio()
+                    self.selectionTask = nil
+                    liveTranscript = ""
+                    phase = .reviewing
+                    OverlayController.shared.hide()
+                    showEditPreview()
+                    return
+                }
+                lastTranscript = final
                 do {
                     guard let target else { throw InsertError.targetChanged }
-                    try await TextInserter.insert(final, into: target, replacing: editingText)
+                    try await TextInserter.insert(final, into: target)
                     try Task.checkCancellation()
                 } catch {
                     guard !Task.isCancelled else { return }
@@ -348,18 +454,7 @@ final class AppState: ObservableObject {
                     fail("\(error.localizedDescription) The transcript was copied to your clipboard.")
                     return
                 }
-                addHistory(final, mode: currentSettings.outputMode)
-                phase = .pasteSent
-                removeRetryAudio()
-                try await Task.sleep(for: .milliseconds(900))
-                if phase == .pasteSent {
-                    phase = .idle
-                    liveTranscript = ""
-                    magicEditActive = false
-                    self.selectionTask = nil
-                    insertionTarget = nil
-                    OverlayController.shared.hide()
-                }
+                try await finishPaste(final, mode: currentSettings.outputMode)
             } catch {
                 // Cancellation cleanup belongs to cancel/new-recording, not an
                 // old task that could otherwise delete the next attempt's audio.
@@ -369,6 +464,23 @@ final class AppState: ObservableObject {
                 // selection failures require a new recording and selection.
                 fail(error.localizedDescription)
             }
+        }
+    }
+
+    private func finishPaste(_ text: String, mode: OutputMode) async throws {
+        lastTranscript = text
+        addHistory(text, mode: mode)
+        removeRetryAudio()
+        selectionTask = nil
+        insertionTarget = nil
+        liveTranscript = ""
+        magicEditActive = false
+        phase = .pasteSent
+        OverlayController.shared.show(appState: self)
+        try await Task.sleep(for: .milliseconds(900))
+        if phase == .pasteSent {
+            phase = .idle
+            OverlayController.shared.hide()
         }
     }
 
@@ -434,7 +546,7 @@ final class AppState: ObservableObject {
             ),
             DiagnosticItem(
                 id: "hotkey",
-                title: "Push-to-talk shortcut",
+                title: "Recording shortcut",
                 state: hotkeyReady ? .passed : .failed,
                 detail: hotkeyReady ? settings.hotkeyShortcut.title : "Unavailable"
             ),
@@ -455,6 +567,8 @@ final class AppState: ObservableObject {
     }
 
     private func fail(_ message: String) {
+        hotkey.resetRecordingGesture()
+        handsFreeRecording = false
         phase = .failed(message)
         OverlayController.shared.show(appState: self)
 

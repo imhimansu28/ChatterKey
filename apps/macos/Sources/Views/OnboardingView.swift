@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import SwiftUI
 
 struct OnboardingView: View {
@@ -67,7 +68,7 @@ struct OnboardingView: View {
             }
             Text("Your voice, typed anywhere")
                 .font(.system(size: 28, weight: .bold))
-            Text("Hold a shortcut, speak naturally, and release. ChatterKey turns your voice into polished text in the focused app.")
+            Text("Hold a shortcut to talk, or double-tap Fn to record hands-free. ChatterKey turns your voice into polished text and previews selected-text edits.")
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -108,7 +109,7 @@ struct OnboardingView: View {
                 Picker("Default output", selection: $draft.outputMode) {
                     ForEach(OutputMode.allCases) { Text($0.title).tag($0) }
                 }
-                Picker("Push-to-talk", selection: $draft.hotkeyShortcut) {
+                Picker("Recording shortcut", selection: $draft.hotkeyShortcut) {
                     ForEach(HotkeyShortcut.allCases) { Text($0.title).tag($0) }
                 }
             }
@@ -120,7 +121,7 @@ struct OnboardingView: View {
     private var permissions: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Allow required permissions").font(.title2.bold())
-            Text("ChatterKey records only while push-to-talk is active and uses Accessibility for the global shortcut and automatic paste.")
+            Text("ChatterKey records after you start it. Hands-free recording continues until you stop it or press Esc. Accessibility is used for the shortcut, selection capture, and paste.")
                 .foregroundStyle(.secondary)
             permissionCard(
                 icon: "mic.fill",

@@ -1,3 +1,4 @@
+import ChatterKeyCore
 import SwiftUI
 
 struct MainPopoverView: View {
@@ -16,7 +17,15 @@ struct MainPopoverView: View {
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                transcriptSection
+                if appState.phase == .reviewing {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("A voice edit is waiting for your review. Nothing has been replaced.")
+                            .font(.system(size: 12))
+                        Button("Review Edit") { appState.showEditPreview() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                if appState.editPreview == nil { transcriptSection }
             }
             .padding(16)
             Divider().opacity(0.55)
@@ -76,9 +85,9 @@ struct MainPopoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(appState.phase == .listening ? "Listening…" : "Hold to dictate")
+                    Text(recordingTitle)
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Speak in any app and insert polished text instantly.")
+                    Text(appState.handsFreeRecording ? "Press Fn to stop, or Esc to cancel." : appState.settings.hotkeyShortcut.recordingInstructions)
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -108,16 +117,22 @@ struct MainPopoverView: View {
                     }
                 } label: {
                     Label(
-                        appState.phase == .listening ? "Stop & Insert" : (appState.canRetry ? "Retry" : "Test Dictation"),
+                        appState.phase == .listening ? "Stop & Process" : (appState.canRetry ? "Retry" : "Test Dictation"),
                         systemImage: appState.phase == .listening ? "stop.fill" : (appState.canRetry ? "arrow.clockwise" : "mic.fill")
                     )
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(appState.phase == .listening ? .red : .indigo)
-                .disabled(appState.phase == .processing)
+                .disabled(appState.phase == .processing || appState.phase == .reviewing)
             }
         }
+    }
+
+    private var recordingTitle: String {
+        if appState.phase == .reviewing { return "Review your voice edit" }
+        if appState.handsFreeRecording { return "Hands-free recording…" }
+        return appState.phase == .listening ? "Listening…" : "Ready to dictate"
     }
 
     @ViewBuilder private var transcriptSection: some View {
@@ -202,8 +217,9 @@ struct MainPopoverView: View {
         if !appState.setupComplete { return "Setup needed" }
         return switch appState.phase {
         case .idle: "Ready"
-        case .listening: "Listening"
+        case .listening: appState.handsFreeRecording ? "Hands-free" : "Listening"
         case .processing: "Processing"
+        case .reviewing: "Review edit"
         case .pasteSent: "Paste sent"
         case .failed: "Needs attention"
         }
@@ -215,7 +231,7 @@ struct MainPopoverView: View {
         case .idle: .green
         case .pasteSent: .indigo
         case .listening: .red
-        case .processing: .indigo
+        case .processing, .reviewing: .indigo
         case .failed: .orange
         }
     }

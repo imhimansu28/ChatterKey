@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 failed=0
-scan_paths=(Package.swift README.md CHANGELOG.md DISTRIBUTION.md docs LICENSE PRIVACY.md SECURITY.md Scripts Sources .env.example .gitignore)
+scan_paths=(Package.swift README.md ROADMAP.md CHANGELOG.md DISTRIBUTION.md docs LICENSE PRIVACY.md SECURITY.md Scripts apps core .env.example .gitignore)
 
 if grep -RInIE \
   --exclude='check-public.sh' \

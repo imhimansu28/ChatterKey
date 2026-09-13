@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 cat > "$TMP/ModelHarness.swift" <<'SWIFT'
+import ChatterKeyCore
 import AppKit
 import AVFoundation
 import Foundation
@@ -13,6 +14,8 @@ import Foundation
 struct ModelHarness {
     static func main() async throws {
         try await testLocalRegressions()
+        try await testEditPreview()
+        try await testHandsFreeHotkey()
         let defaults = ProviderSettings()
         precondition(defaults.personalDictionary.contains { $0.replacement == "ChatGPT" })
         precondition(defaults.voiceSnippets.contains { $0.cue == "insert quick thanks" })
@@ -152,9 +155,6 @@ struct ModelHarness {
         precondition(AIProvider.google.requestModelID("models/gemini-3.5-flash-lite") == "gemini-3.5-flash-lite")
 
         let audio = Data("mock WAV bytes".utf8)
-        let audioURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".wav")
-        try audio.write(to: audioURL)
-        defer { try? FileManager.default.removeItem(at: audioURL) }
 
         for connection in AIProvider.availableConnections {
             var defaults = ProviderSettings()
@@ -168,7 +168,7 @@ struct ModelHarness {
                     config.baseURL = "https://attacker.example/v1"
                     let mock = MockTransport(body: reply("Final text"))
                     let client = ProviderClient(settings: config, apiKey: "test-credential", transport: { try await mock.send($0) })
-                    let output = try await client.process(audioURL: audioURL)
+                    let output = try await client.process(audio: audio)
                     precondition(output == "Final text")
                     let requests = await mock.requests
                     precondition(requests.count == 1)
@@ -219,7 +219,7 @@ struct ModelHarness {
             let selected = "Original document with a URL and code."
             let editMock = MockTransport(body: reply("new line insert quick thanks"))
             let editor = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await editMock.send($0) })
-            let edited = try await editor.process(audioURL: audioURL, editing: selected)
+            let edited = try await editor.process(audio: audio, editing: selected)
             precondition(edited == "new line insert quick thanks") // No local snippet/command expansion in edits.
             let editRequests = await editMock.requests
             precondition(editRequests.count == 1)
@@ -229,9 +229,9 @@ struct ModelHarness {
             precondition(editContent.count == 2)
             precondition((editContent[0]["text"] as? String)?.contains(selected) == true)
             precondition(editContent[1]["type"] as? String == "input_audio")
-            precondition(editor.processingPrompt(editing: selected).contains("spoken instruction"))
-            precondition(!editor.processingPrompt(editing: selected).contains(defaults.outputMode.instruction))
-            precondition(editor.processingPrompt(editing: "  ") == editor.effectiveProcessingPrompt)
+            precondition(ProcessingPrompt.build(settings: defaults, editing: selected).contains("spoken instruction"))
+            precondition(!ProcessingPrompt.build(settings: defaults, editing: selected).contains(defaults.outputMode.instruction))
+            precondition(ProcessingPrompt.build(settings: defaults, editing: "  ") == ProcessingPrompt.build(settings: defaults))
 
             for literal in ["\"Quoted text\"", "```swift\nlet value = 1\n```", "Intro\n```swift\nlet value = 1\n```\nOutro"] {
                 for mode in [OutputMode.verbatim, .technical] {
@@ -239,9 +239,9 @@ struct ModelHarness {
                     config.outputMode = mode
                     let mock = MockTransport(body: reply(literal))
                     let client = ProviderClient(settings: config, apiKey: "test-credential", transport: { try await mock.send($0) })
-                    let output = try await client.process(audioURL: audioURL)
+                    let output = try await client.process(audio: audio)
                     precondition(output == literal)
-                    let edited = try await client.process(audioURL: audioURL, editing: selected)
+                    let edited = try await client.process(audio: audio, editing: selected)
                     precondition(edited == literal)
                 }
             }
@@ -253,15 +253,15 @@ struct ModelHarness {
             let indented = "    let value = 1\n"
             let literalMock = MockTransport(body: reply(indented))
             let literalClient = ProviderClient(settings: verbatim, apiKey: "test-credential", transport: { try await literalMock.send($0) })
-            let literalOutput = try await literalClient.process(audioURL: audioURL)
+            let literalOutput = try await literalClient.process(audio: audio)
             precondition(literalOutput == indented)
-            let literalEdit = try await literalClient.process(audioURL: audioURL, editing: selected)
+            let literalEdit = try await literalClient.process(audio: audio, editing: selected)
             precondition(literalEdit == indented)
 
             // Imperfect English must never trigger a hidden repair request.
             let hindiMock = MockTransport(body: reply("यह report ready hai."))
             let hindiClient = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await hindiMock.send($0) })
-            _ = try await hindiClient.process(audioURL: audioURL)
+            _ = try await hindiClient.process(audio: audio)
             let hindiCount = await hindiMock.requests.count
             precondition(hindiCount == 1)
 
@@ -281,7 +281,7 @@ struct ModelHarness {
             ] {
                 let client = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await mock.send($0) })
                 do {
-                    _ = try await client.process(audioURL: audioURL)
+                    _ = try await client.process(audio: audio)
                     preconditionFailure("Invalid response should not be inserted")
                 } catch { }
                 let count = await mock.requests.count
@@ -291,7 +291,7 @@ struct ModelHarness {
             let cancelledMock = MockTransport(body: reply("Must not insert"), cancel: true)
             let cancelledClient = ProviderClient(settings: defaults, apiKey: "test-credential", transport: { try await cancelledMock.send($0) })
             do {
-                _ = try await cancelledClient.process(audioURL: audioURL)
+                _ = try await cancelledClient.process(audio: audio)
                 preconditionFailure("Cancellation should propagate")
             } catch is CancellationError { }
             let cancelledCount = await cancelledMock.requests.count
@@ -299,23 +299,23 @@ struct ModelHarness {
 
             for invalid in [openAI, custom] {
                 do {
-                    _ = try ProviderClient(settings: invalid, apiKey: "test-credential").makeAudioRequest(audio: audio)
+                    _ = try ProviderClient(settings: invalid, apiKey: "test-credential", transport: { _ in preconditionFailure("Unexpected network request") }).makeAudioRequest(audio: audio)
                     preconditionFailure("Legacy provider credentials must not be sent")
                 } catch ProviderError.unsupportedProvider { }
             }
             var emptyModel = defaults
             emptyModel.model = "  "
             do {
-                _ = try ProviderClient(settings: emptyModel, apiKey: "test-credential").makeAudioRequest(audio: audio)
+                _ = try ProviderClient(settings: emptyModel, apiKey: "test-credential", transport: { _ in preconditionFailure("Unexpected network request") }).makeAudioRequest(audio: audio)
                 preconditionFailure("Empty model must be rejected")
             } catch ProviderError.missingProcessingModel { }
             do {
-                _ = try ProviderClient(settings: defaults, apiKey: "").makeAudioRequest(audio: audio)
+                _ = try ProviderClient(settings: defaults, apiKey: "", transport: { _ in preconditionFailure("Unexpected network request") }).makeAudioRequest(audio: audio)
                 preconditionFailure("Empty API key must be rejected")
             } catch ProviderError.missingAPIKey { }
 
             let cost = UsageAnalytics.estimatedCost(durationSeconds: 60, finalText: "Hello world", settings: defaults)
-            let promptTokens = Double(UsageAnalytics.wordCount(editor.effectiveProcessingPrompt)) * 1.35
+            let promptTokens = Double(UsageAnalytics.wordCount(ProcessingPrompt.build(settings: defaults))) * 1.35
             let expected = (1920 * 0.30 + promptTokens * 0.30 + 2 * 1.35 * 2.50) / 1_000_000
             precondition(abs(cost - expected) < 0.000000001)
             let shortEditCost = UsageAnalytics.estimatedCost(durationSeconds: 0, finalText: "", settings: defaults, selectedText: "One word")
@@ -328,6 +328,229 @@ struct ModelHarness {
 
         print("Local clipboard, hotkey, audio, history, settings and text regression tests passed")
         print("Google Direct/OpenRouter: migration, isolated connection settings, all writing modes, single-request edits, failure handling and cost tests passed")
+    }
+
+    static func testHandsFreeHotkey() async throws {
+        let hotkey = GlobalHotkey()
+        var calls: [String] = []
+        hotkey.onPress = { [weak hotkey] in
+            calls.append("start")
+            hotkey?.recordingStarted()
+        }
+        hotkey.onRelease = { [weak hotkey] in
+            calls.append("stop")
+            hotkey?.resetRecordingGesture()
+        }
+        hotkey.onCancel = { [weak hotkey] in
+            calls.append("cancel")
+            hotkey?.resetRecordingGesture()
+        }
+        hotkey.onHandsFree = { calls.append("lock") }
+        func fn(_ down: Bool, at timestamp: UInt64? = nil) {
+            let event = CGEvent(keyboardEventSource: nil, virtualKey: 63, keyDown: down)!
+            event.timestamp = timestamp ?? UInt64(ProcessInfo.processInfo.systemUptime * 1_000_000_000)
+            event.flags = down ? .maskSecondaryFn : []
+            precondition(hotkey.handleCGEvent(type: .flagsChanged, event: event))
+        }
+        func key(_ code: CGKeyCode) -> Bool {
+            let event = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true)!
+            return hotkey.handleCGEvent(type: .keyDown, event: event)
+        }
+        func drain() async throws { try await Task.sleep(for: .milliseconds(20)) }
+        let settled = GlobalHotkey.functionDoubleTapDelay + .milliseconds(40)
+
+        fn(true)
+        try await Task.sleep(for: .milliseconds(300))
+        precondition(calls == ["start"])
+        fn(false)
+        try await drain()
+        precondition(calls == ["start", "stop"], "Hold-to-talk must stop without the double-tap delay")
+
+        calls = []
+        fn(true); fn(false); fn(true); fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "lock"] && hotkey.isHandsFree, "Double-tap must not stop the first recording or start a second one")
+        hotkey.configure(.function)
+        precondition(hotkey.isHandsFree, "Refreshing an unchanged shortcut must not unlock recording")
+        precondition(!key(0), "Ordinary typing should pass through while hands-free")
+        fn(true)
+        try await drain()
+        precondition(calls == ["start", "lock", "stop"] && !hotkey.isHandsFree)
+        fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "lock", "stop"], "The stop key's release must not restart or stop twice")
+
+        calls = []
+        fn(true); fn(false); fn(true); fn(false)
+        try await drain()
+        precondition(key(53), "Escape must cancel a locked recording with Fn released")
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "lock", "cancel"] && !hotkey.isHandsFree)
+
+        calls = []
+        fn(true); fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "stop"], "A single short Fn tap must complete once after the grace interval")
+
+        calls = []
+        let timestamp = UInt64(ProcessInfo.processInfo.systemUptime * 1_000_000_000)
+        fn(true, at: timestamp)
+        try await Task.sleep(for: .milliseconds(300))
+        fn(false, at: timestamp + 50_000_000)
+        fn(true, at: timestamp + 150_000_000)
+        fn(false, at: timestamp + 200_000_000)
+        try await drain()
+        precondition(calls == ["start", "lock"] && hotkey.isHandsFree, "Delayed event delivery must not turn a physical double-tap into a hold")
+        precondition(key(53))
+        try await drain()
+
+        calls = []
+        fn(true, at: timestamp + 1_000_000_000)
+        fn(false, at: timestamp + 1_050_000_000)
+        fn(true, at: timestamp + 1_600_000_000)
+        fn(false, at: timestamp + 1_650_000_000)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "stop"] && !hotkey.isHandsFree, "An overdue timer must not lock taps whose physical timestamps are too far apart")
+
+        calls = []
+        fn(true); fn(false)
+        try await drain()
+        hotkey.configure(.rightOption)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "cancel"], "Changing shortcuts must cancel pending tap timers")
+        calls = []
+        let option = CGEvent(keyboardEventSource: nil, virtualKey: 61, keyDown: true)!
+        option.flags = .maskAlternate
+        precondition(hotkey.handleCGEvent(type: .flagsChanged, event: option))
+        try await drain()
+        option.flags = []
+        precondition(hotkey.handleCGEvent(type: .flagsChanged, event: option))
+        try await drain()
+        precondition(calls == ["start", "stop"], "Other modifier shortcuts remain hold-to-talk")
+        hotkey.configure(.function)
+
+        calls = []
+        fn(true); fn(false); fn(true); fn(false)
+        try await drain()
+        hotkey.configure(.optionSpace)
+        try await drain()
+        precondition(calls == ["start", "lock", "cancel"] && !hotkey.isHandsFree)
+        hotkey.configure(.function)
+
+        calls = []
+        fn(true)
+        try await drain()
+        precondition(!key(123))
+        fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "cancel"], "Fn navigation combinations must cancel rather than submit audio")
+
+        calls = []
+        fn(true); fn(false); fn(true); fn(false)
+        try await drain()
+        hotkey.resetRecordingGesture()
+        fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "lock"] && !hotkey.isHandsFree, "A manual stop must clear the latch without a delayed second completion")
+
+        calls = []
+        hotkey.onPress = { [weak hotkey] in
+            calls.append("blocked")
+            hotkey?.resetRecordingGesture()
+        }
+        fn(true); fn(false); fn(true); fn(false)
+        try await Task.sleep(for: settled)
+        precondition(calls == ["blocked"] && !hotkey.isHandsFree, "A failed or busy start must discard the queued hands-free callback")
+        hotkey.onPress = { [weak hotkey] in calls.append("start"); hotkey?.recordingStarted() }
+
+        for reason in [CGEventType.tapDisabledByTimeout, .tapDisabledByUserInput] {
+            calls = []
+            fn(true); fn(false); fn(true); fn(false)
+            try await drain()
+            let event = CGEvent(keyboardEventSource: nil, virtualKey: 63, keyDown: false)!
+            precondition(!hotkey.handleCGEvent(type: reason, event: event))
+            try await drain()
+            precondition(calls == ["start", "lock", "cancel"] && !hotkey.isHandsFree, "A disabled event tap must not leave recording locked")
+        }
+        calls = []
+        fn(true); fn(false); fn(true); fn(false)
+        try await drain()
+        hotkey.stop()
+        try await Task.sleep(for: settled)
+        precondition(calls == ["start", "lock", "cancel"] && !hotkey.isHandsFree)
+        print("Fn hands-free: hold, double-tap lock, one-press stop, Escape, shortcut changes, failed starts, manual stop and event-tap recovery passed")
+    }
+
+    static func testEditPreview() async throws {
+        let original = "  नमस्ते 👋\r\nSend 42 to old@example.com; see https://example.com/v2?a=1.\n"
+        let proposed = "  नमस्ते 👋\r\nPlease send 43 to new@example.com; see https://example.com/v3?a=1.\n"
+        let preview = EditPreview(original: original, proposed: proposed, outputMode: .verbatim)
+        precondition(preview.originalSegments.map(\.text).joined() == original)
+        precondition(preview.proposedSegments.map(\.text).joined() == proposed)
+        precondition(preview.valueChanges.count == 6)
+        precondition(preview.valueChanges.filter { $0.value.kind == .number }.map { $0.value.text } == ["42", "43"])
+        precondition(!preview.allowsApply(acknowledgingValueChanges: false))
+        precondition(preview.allowsApply(acknowledgingValueChanges: true))
+        precondition(preview.outputMode == .verbatim)
+
+        let ordinary = EditPreview(original: "Hello steady middle goodbye", proposed: "Hi steady middle bye", outputMode: .casual)
+        precondition(ordinary.valueChanges.isEmpty)
+        precondition(ordinary.allowsApply(acknowledgingValueChanges: false))
+        precondition(ordinary.originalSegments.contains { !$0.changed && $0.text.contains("steady middle") })
+        precondition(ordinary.originalSegments.filter(\.changed).map(\.text).joined() == "Hellogoodbye")
+        precondition(ordinary.proposedSegments.filter(\.changed).map(\.text).joined() == "Hibye")
+        for (before, after) in [("", ""), ("unchanged", "unchanged"), ("text", " \n\t")] {
+            let blocked = EditPreview(original: before, proposed: after, outputMode: .verbatim)
+            precondition(!blocked.allowsApply(acknowledgingValueChanges: true))
+        }
+        for (before, after) in [("", "new"), ("old", ""), ("👩🏽‍💻 café", "👩🏽‍💻 नमस्ते"), ("```\n  a\n```", "```\n  b\n```"), ("a a a", "a a")] {
+            let literal = EditPreview(original: before, proposed: after, outputMode: .verbatim)
+            precondition(literal.originalSegments.map(\.text).joined() == before)
+            precondition(literal.proposedSegments.map(\.text).joined() == after)
+        }
+        let repeated = EditPreview(original: "42 then 42", proposed: "42", outputMode: .concise)
+        precondition(repeated.valueChanges.count == 1)
+        precondition(repeated.valueChanges[0].originalCount == 2 && repeated.valueChanges[0].proposedCount == 1)
+        let reordered = EditPreview(original: "10 then 20", proposed: "20 then 10", outputMode: .verbatim)
+        precondition(reordered.valueChanges.isEmpty, "Value counts do not establish semantic correctness")
+        let hindi = EditPreview(original: "कुल ₹१,२०० और -12.5%", proposed: "कुल ₹१,३०० और -12.5%", outputMode: .cleanSameLanguage)
+        precondition(hindi.valueChanges.map { $0.value.text } == ["₹१,२००", "₹१,३००"])
+        let added = EditPreview(original: "Contact me", proposed: "Contact me at test@example.com", outputMode: .professional)
+        precondition(added.valueChanges.count == 1 && added.valueChanges[0].originalCount == 0)
+        precondition(EditPreview.protectedValues(in: "See (www.example.com/path), then x+1@example.org.").map(\.text) == ["www.example.com/path),", "x+1@example.org"])
+        let punctuation = EditPreview(original: "See https://example.com/path.", proposed: "See https://example.com/path!", outputMode: .casual)
+        precondition(punctuation.valueChanges.count == 2, "URL punctuation can be meaningful and must not be silently stripped")
+        let signed = EditPreview(original: "-₹12 and ₹-13", proposed: "₹12 and ₹13", outputMode: .verbatim)
+        precondition(signed.valueChanges.count == 4)
+        precondition(signed.valueChanges.prefix(2).map { $0.value.text } == ["-₹12", "₹-13"])
+
+        let large = String(repeating: "word ", count: 10_000)
+        let passage = EditPreview(original: large + "old 👋 end", proposed: large + "new 👋 end", outputMode: .verbatim)
+        precondition(passage.usesPassageHighlight)
+        precondition(passage.originalSegments.map(\.text).joined() == passage.original)
+        precondition(passage.proposedSegments.map(\.text).joined() == passage.proposed)
+        precondition(passage.originalSegments.filter(\.changed).map(\.text).joined() == "old")
+        let longWord = String(repeating: "a", count: 50_000)
+        precondition(EditPreview.protectedValues(in: longWord).isEmpty, "Long non-email text must scan without backtracking across every suffix")
+        let unchanged = EditPreview(original: large, proposed: large, outputMode: .verbatim)
+        precondition(unchanged.originalSegments.allSatisfy { !$0.changed })
+
+        precondition(DictationPhase.reviewing.isBusy && DictationPhase.processing.isBusy && DictationPhase.listening.isBusy)
+        precondition(!DictationPhase.idle.isBusy && !DictationPhase.pasteSent.isBusy && !DictationPhase.failed("fixture").isBusy)
+        let missing = TextSelectionReader.Target(processIdentifier: -1, element: nil, range: nil)
+        precondition(!missing.supportsVerifiedReplacement)
+        let element = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+        for range in [nil, CFRange(location: 0, length: 0), CFRange(location: -1, length: 3), CFRange(location: 1, length: Int.max)] as [CFRange?] {
+            let unknown = TextSelectionReader.Target(processIdentifier: -1, element: element, range: range)
+            precondition(!unknown.supportsVerifiedReplacement)
+        }
+        let stale = TextSelectionReader.Target(processIdentifier: -1, element: element, range: CFRange(location: 0, length: 3))
+        precondition(stale.supportsVerifiedReplacement && !stale.isCurrent)
+        do {
+            try await TextInserter.insert("new", into: stale, replacing: "old")
+            preconditionFailure("A stale target must not dispatch a paste")
+        } catch InsertError.targetChanged { }
+        print("Edit preview: literal diff, bounded long-text comparison, protected-value acknowledgement, Unicode, and stale-target guards passed")
     }
 
     static func testLocalRegressions() async throws {
@@ -481,7 +704,7 @@ struct ModelHarness {
         precondition(!hotkey.handleCGEvent(type: .keyDown, event: paste))
         modifier.flags = []
         _ = hotkey.handleCGEvent(type: .flagsChanged, event: modifier)
-        try await Task.sleep(for: .milliseconds(20))
+        try await Task.sleep(for: GlobalHotkey.functionDoubleTapDelay + .milliseconds(40))
         precondition(releases == 1 && cancels == 0)
         hotkey.stop()
 
@@ -518,6 +741,9 @@ struct ModelHarness {
                 try file.write(from: buffer)
             }
             try AudioRecorder.convertToProviderWAV(from: source, to: destination)
+            let audio = try await AudioRecorder.readPreparedAudio(at: destination)
+            let fileBytes = try Data(contentsOf: destination)
+            precondition(audio == fileBytes, "The native adapter changed prepared audio bytes")
             let converted = try AVAudioFile(forReading: destination)
             precondition(converted.fileFormat.sampleRate == 16_000)
             precondition(converted.fileFormat.channelCount == 1)
@@ -527,6 +753,20 @@ struct ModelHarness {
             try converted.read(into: output)
             precondition(abs(output.floatChannelData![0][100]) > 0.1, "Conversion lost the audio signal")
         }
+
+        let missingAudio = directory.appendingPathComponent("missing.wav")
+        do {
+            _ = try await AudioRecorder.readPreparedAudio(at: missingAudio)
+            preconditionFailure("A missing recording must not become empty provider audio")
+        } catch let error as CocoaError {
+            precondition(error.code == .fileReadNoSuchFile)
+        }
+        let cancelledRead = Task { @MainActor in
+            try await AudioRecorder.readPreparedAudio(at: missingAudio)
+        }
+        cancelledRead.cancel()
+        do { _ = try await cancelledRead.value; preconditionFailure("Cancelled audio read proceeded") }
+        catch is CancellationError { }
     }
 }
 
@@ -556,5 +796,14 @@ actor MockTransport {
     }
 }
 SWIFT
-swiftc -swift-version 6 Sources/ChatterKey/Models.swift Sources/ChatterKey/Services/VoiceTextProcessor.swift Sources/ChatterKey/Services/ProviderEndpointPolicy.swift Sources/ChatterKey/Services/ProviderClient.swift Sources/ChatterKey/Services/UsageAnalytics.swift Sources/ChatterKey/Services/HistoryStore.swift Sources/ChatterKey/Services/ClipboardTransaction.swift Sources/ChatterKey/Services/TextSelectionReader.swift Sources/ChatterKey/Services/GlobalHotkey.swift Sources/ChatterKey/Services/AudioRecorder.swift "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
+# Compile the core independently so the harness exercises the real module boundary.
+swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
+  -emit-library -emit-module -module-name ChatterKeyCore \
+  core/Sources/ChatterKeyCore/*.swift -o "$TMP/libChatterKeyCore.dylib" \
+  -emit-module-path "$TMP/ChatterKeyCore.swiftmodule"
+swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
+  -I "$TMP" -L "$TMP" -lChatterKeyCore -Xlinker -rpath -Xlinker "$TMP" \
+  apps/macos/Sources/Models.swift \
+  apps/macos/Sources/Adapters/{TextInserter,HistoryStore,ClipboardTransaction,TextSelectionReader,GlobalHotkey,AudioRecorder,ProviderTransport}.swift \
+  "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
 "$TMP/model-tests"
