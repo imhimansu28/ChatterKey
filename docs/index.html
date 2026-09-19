@@ -3,337 +3,163 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ChatterKey — AI voice typing for macOS and Android</title>
-  <meta name="description" content="Native voice typing for macOS and an Android keyboard, powered by one shared processing core. Download macOS 5.0.0 or the signed Android 1.0.0 APK. Bring your own Google Direct or OpenRouter key.">
-  <meta name="theme-color" content="#f7f6f2">
-  <meta property="og:title" content="ChatterKey — Your voice, polished into text">
-  <meta property="og:description" content="Hold Fn on Mac or the keyboard mic on Android. One model request, reviewable voice edits, separate native apps.">
+  <title>ChatterKey — Open-Source Voice Typing for Mac &amp; Android</title>
+  <meta name="description" content="Turn speech into clear text on Mac or Android. Review voice edits, use your own Gemini or OpenRouter key, and download the free, open-source ChatterKey app.">
+  <link rel="canonical" href="https://imhimansu28.github.io/ChatterKey/">
+  <meta name="theme-color" content="#f8f9f5">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ChatterKey">
+  <meta property="og:title" content="ChatterKey — Open-Source Voice Typing for Mac &amp; Android">
+  <meta property="og:description" content="Turn speech into clear text on Mac or Android. Review voice edits, use your own Gemini or OpenRouter key, and download the free, open-source ChatterKey app.">
   <meta property="og:url" content="https://imhimansu28.github.io/ChatterKey/">
-  <meta property="og:image" content="https://imhimansu28.github.io/ChatterKey/assets/chatterkey-hero.jpg">
+  <meta property="og:image" content="https://imhimansu28.github.io/ChatterKey/assets/social-preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ChatterKey: Write messages with your voice. Mac and Android voice typing with an illustrative message example.">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="icon" href="assets/app-icon.png" type="image/png">
-  <link rel="apple-touch-icon" href="assets/app-icon.png">
-  <link rel="stylesheet" href="styles.css?v=8d3675b1e685">
+  <meta name="twitter:title" content="ChatterKey — Open-Source Voice Typing for Mac &amp; Android">
+  <meta name="twitter:description" content="Turn speech into clear text on Mac or Android. Review voice edits, use your own Gemini or OpenRouter key, and download the free, open-source ChatterKey app.">
+  <meta name="twitter:image" content="https://imhimansu28.github.io/ChatterKey/assets/social-preview.png">
+  <meta name="twitter:image:alt" content="ChatterKey: Write messages with your voice. Mac and Android voice typing with an illustrative message example.">
+  <link rel="icon" href="assets/brand-icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/brand-icon.png">
+  <script>document.documentElement.classList.add('js');</script>
+  <link rel="stylesheet" href="styles.css?v=11ea098389a2">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "SoftwareApplication",
-      "name": "ChatterKey for macOS",
-      "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "macOS 14 or later (Apple Silicon)",
-      "softwareVersion": "5.0.0",
-      "license": "https://opensource.org/license/mit",
-      "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip"
+      "@type": "WebPage",
+      "@id": "https://imhimansu28.github.io/ChatterKey/#page",
+      "url": "https://imhimansu28.github.io/ChatterKey/",
+      "name": "ChatterKey — Open-Source Voice Typing for Mac & Android",
+      "description": "Turn speech into clear text on Mac or Android. Review voice edits, use your own Gemini or OpenRouter key, and download the free, open-source ChatterKey app.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://imhimansu28.github.io/ChatterKey/#website"
+      }
     },
     {
-      "@type": "SoftwareApplication",
-      "name": "ChatterKey for Android",
-      "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "Android 9 or later (ARM64)",
-      "softwareVersion": "1.0.0",
-      "license": "https://opensource.org/license/mit",
-      "downloadUrl": "https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk"
+      "@type": "WebSite",
+      "@id": "https://imhimansu28.github.io/ChatterKey/#website",
+      "url": "https://imhimansu28.github.io/ChatterKey/",
+      "name": "ChatterKey",
+      "inLanguage": "en"
     }
   ]
 }
   </script>
 </head>
 <body>
-  <div class="ambient ambient-one" aria-hidden="true"></div>
-  <div class="ambient ambient-two" aria-hidden="true"></div>
-
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="ChatterKey home">
-      <img src="assets/app-icon.png" alt="" width="34" height="34">
-      <span>ChatterKey</span>
-    </a>
-    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="Open navigation menu">
-      <span></span><span></span><span></span>
-    </button>
-    <nav id="main-navigation" aria-label="Main navigation">
-      <a href="#how">How it works</a>
-      <a href="#features">Features</a>
-      <a href="#use-cases">Use cases</a>
-      <a href="#privacy">Privacy</a>
-      <a href="#downloads">Downloads</a>
-    </nav>
-    <a class="header-cta" href="#downloads" aria-label="Choose a macOS or Android download">Downloads <span>↓</span></a>
+    <div class="header-inner wrap">
+      <a class="brand" href="./" aria-label="ChatterKey home"><img src="assets/brand-icon.png" width="34" height="34" alt="">ChatterKey</a>
+      <button class="nav-toggle" type="button" aria-controls="main-navigation" aria-expanded="false" aria-label="Open navigation menu" disabled>Menu</button>
+      <nav class="main-nav" id="main-navigation" aria-label="Main navigation">
+        <a href="#use-cases">Use cases</a>
+        <a href="macos/">For Mac</a>
+        <a href="android/">For Android</a>
+        <a class="nav-download" href="#downloads">Downloads <span aria-hidden="true">↓</span></a>
+      </nav>
+    </div>
   </header>
-
-  <main id="top">
-    <section class="hero section-shell">
-      <div class="hero-copy reveal">
-        <div class="eyebrow"><span class="status-dot"></span> Native apps for macOS &amp; Android</div>
-        <h1>Your voice.<br><em>Polished into text.</em></h1>
-        <p class="hero-lead">Hold Fn on Mac or the keyboard mic on Android. Turn speech into polished text, review selected-text edits, and keep your own Google Direct or OpenRouter connection. One shared core. Two native apps.</p>
-        <a class="release-badge" href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">
-          <span>macOS 5.0.0</span><strong>Now alongside Android 1.0.0. Separate releases, shared core.</strong><b>→</b>
-        </a>
-        <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip" aria-label="Download ChatterKey version 5.0.0 ZIP for macOS">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
-            Download for macOS
-          </a>
-          <a class="button button-secondary" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk" aria-label="Download ChatterKey Android 1.0.0 ARM64 APK">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
-            Download Android APK
-          </a>
-        </div>
-        <p class="download-note"><strong>Mac:</strong> Apple Silicon · macOS 14+ · Ad-hoc signed, not Apple-notarized. <a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">Mac notes &amp; checksum</a>. <strong>Android:</strong> signed APK · Android 9+ · ARM64. <a href="#downloads">Setup &amp; limits</a>.</p>
-        <div class="hero-proof">
-          <span><b>⌨</b> Type in supported apps</span>
-          <span><b>↗</b> Local usage dashboard</span>
-          <span><b>A✓</b> Custom AI instructions</span>
-          <span><b>🔑</b> Your API key</span>
-        </div>
+  <main id="main" tabindex="-1">
+    <section class="hero product-hero wrap" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <span class="eyebrow">ChatterKey for Mac &amp; Android</span>
+        <h1 id="hero-title">Write messages<br><em>with your voice.</em></h1>
+        <p class="lead">Dictate a reply, turn rough thoughts into notes, or edit selected text by speaking.</p>
+        <div class="hero-actions"><a class="button" href="#downloads">Get ChatterKey <span aria-hidden="true">↓</span></a></div>
+        <p class="hero-note">Free app. Your Google or OpenRouter key; AI usage billed separately.</p>
+        <p class="how-line" id="how">Hold <kbd>Fn</kbd> on Mac or the mic on Android. Speak, then release.</p>
       </div>
-
-      <div class="hero-visual reveal delay-one">
-        <div class="visual-glow" aria-hidden="true"></div>
-        <img src="assets/chatterkey-hero.jpg" alt="ChatterKey transforming a spoken thought into polished text" width="1400" height="933">
-        <div class="floating-chip chip-shortcut"><kbd>Fn</kbd><span>Hold to speak</span></div>
-        <div class="floating-chip chip-ready"><span class="check">✓</span><span>Inserted</span></div>
+      <figure class="dictation-example" aria-labelledby="example-caption">
+        <div class="dictation-input"><span class="example-label">You say</span><p>“Um, tell Priya I’m running five minutes late, and they can start without me.”</p></div>
+        <div class="dictation-output"><span class="example-label">A possible result</span><p>Hi Priya, I’m running five minutes late. Please start without me.</p></div>
+        <figcaption id="example-caption">Illustrative example, not a live recording. Results vary by model.</figcaption>
+      </figure>
+    </section>
+    <section class="section use-cases wrap" id="use-cases" aria-labelledby="features">
+      <h2 id="features">For the writing you do every day.</h2>
+      <div class="use-case-list">
+        <article class="use-case"><h3>Reply to a message or email.</h3><p>Say what you want to send instead of typing a long reply. Choose professional mode for a more formal draft, then check it before sending.</p></article>
+        <article class="use-case"><h3>Turn scattered thoughts into notes.</h3><p>Speak a shopping list, a meeting follow-up or an idea. Choose bullets mode to organise those thoughts into a list.</p></article>
+        <article class="use-case"><h3>Fix a draft without retyping.</h3><p>Select a passage and say “Make this shorter.” Review the proposed edit and any protected-value warnings before applying. If replacement can’t be verified, copy and paste instead.</p></article>
       </div>
     </section>
-
-    <section class="trust-strip" aria-label="Product principles">
-      <div class="marquee">
-        <span>VOICE → POLISHED TEXT</span><i></i><span>NATIVE MAC + ANDROID</span><i></i><span>YOUR API KEY</span><i></i><span>ONE AUDIO MODEL</span><i></i><span>NO TRACKING BACKEND</span><i></i><span>OPEN SOURCE</span>
-      </div>
-    </section>
-
-
-    <section id="downloads" class="section-shell section-block">
-      <div class="section-heading reveal">
-        <div class="kicker">Choose your platform</div>
-        <h2>Separate downloads.<br>One shared voice core.</h2>
-        <p>Independent versions, platform-specific notes and checksums. Bring your own provider key; model usage is billed by your provider. No Windows build or automatic settings sync.</p>
+    <section class="section downloads wrap" id="downloads" aria-labelledby="downloads-title">
+      <div class="section-heading">
+        <h2 id="downloads-title">Choose your device.</h2>
+        <p>Free, open-source apps. Connect your own Google or OpenRouter API key. Voice processing needs internet and is billed by your provider.</p>
       </div>
       <div class="platform-grid">
-        <article class="step-card platform-card reveal">
-          <div class="kicker">macOS 5.0.0 · Build 15</div>
-          <h3>Your Mac voice workflow</h3>
-          <p class="platform-summary">Menu-bar dictation, Fn hold/double-tap hands-free, reviewed voice edits, personal vocabulary, optional local live preview, history and cost estimates. Version 5.0.0 preserves the v4.8.0 features while packaging Mac and shared processing independently.</p>
-          <p><strong>Apple Silicon · macOS 14+</strong><br>Ad-hoc signed community-test ZIP, not Apple-notarized. Editor support depends on Accessibility; unverifiable edits use Copy recovery.</p>
-          <div class="hero-actions"><a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip">Download Mac ZIP</a></div>
-          <p><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">Mac release notes &amp; checksum →</a></p>
+        <article class="platform-card" id="download-macos" aria-labelledby="mac-title">
+          <div class="platform-top"><span class="platform-symbol"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="4" width="20" height="15" rx="2"/><path d="M10 24h8M14 19v5"/></svg></span>
+            <div>
+              <h3 id="mac-title">For Mac</h3><small>App v5.0.0 · Apple Silicon</small>
+            </div>
+          </div>
+          <p>A menu-bar app with Fn voice typing and selected-text editing.</p>
+          <ul class="requirements">
+            <li>macOS 14 or later</li>
+            <li>Microphone &amp; Accessibility permissions</li>
+          </ul>
+          <p class="release-warning"><strong>Community-test build.</strong> Ad-hoc signed, not Apple-notarized or Developer ID signed. macOS may block it. Read the setup guide before installing.</p><a class="button" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip">Download for macOS <span aria-hidden="true">↓</span></a>
+          <div class="platform-links"><a href="macos/">Mac setup &amp; features</a><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/macos-v5.0.0">Mac release notes</a><a href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip.sha256" aria-label="macOS ZIP SHA-256 checksum">Checksum</a>
+          </div>
         </article>
-        <article class="step-card platform-card reveal delay-one">
-          <div class="kicker">Android 1.0.0 · Version code 4</div>
-          <h3>Your keyboard, with a voice</h3>
-          <p class="platform-summary">English (India) QWERTY, full symbols including ₹, Shift/caps lock and an animated hold/double-tap mic. Review selected-text edits, configure your provider and optionally count typed-word estimates and final dictation output—locally, without storing typed text.</p>
-          <p><strong>ARM64 · Android 9+ · Signed APK</strong><br>Enable/select ChatterKey, allow the mic and save your API key. Remove old debug copies from all profiles before the first release install. Live release-mode voice/editor coverage is incomplete; no predictive typing or Mac-only history/cost dashboard.</p>
-          <div class="hero-actions"><a class="button button-primary" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK</a></div>
-          <p><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/android-v1.0.0">Android setup, privacy &amp; checksum →</a></p>
-        </article>
-      </div>
-    </section>
-
-    <section id="how" class="section-shell section-block">
-      <div class="section-heading reveal">
-        <div class="kicker">The Mac workflow</div>
-        <h2>From thought to finished text<br>in one natural flow.</h2>
-        <p>Dictate into a supported editor, or review a selected-text rewrite before applying. Use Copy recovery when automatic replacement cannot be verified.</p>
-      </div>
-
-      <div class="steps-grid">
-        <article class="step-card reveal">
-          <div class="step-number">01</div>
-          <div class="step-icon waveform-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <h3>Hold and speak</h3>
-          <p>Press your chosen shortcut and speak naturally in your own words and style.</p>
-          <div class="sample sample-speech">“I need to send the client a clear update…”</div>
-        </article>
-        <article class="step-card reveal delay-one">
-          <div class="step-number">02</div>
-          <div class="step-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l2.2 7.1L25 13l-6.8 2.9L16 23l-2.2-7.1L7 13l6.8-2.9L16 3Z"/><path d="m25 21 .9 2.9L29 25l-3.1 1.1L25 29l-.9-2.9L21 25l3.1-1.1L25 21Z"/></svg></div>
-          <h3>AI understands intent</h3>
-          <p>One audio request through Google Direct or OpenRouter transcribes, translates, and applies your writing style—no separate polishing call.</p>
-          <div class="processing-line"><span></span><span></span><span></span></div>
-        </article>
-        <article class="step-card reveal delay-two">
-          <div class="step-number">03</div>
-          <div class="step-icon success-icon">✓</div>
-          <h3>Ready where you need it</h3>
-          <p>ChatterKey attempts to paste into the focused text field. Support depends on the app; read-only content cannot be replaced in place.</p>
-          <div class="sample sample-output">Could you please rewrite this as a professional email?</div>
+        <article class="platform-card" id="download-android" aria-labelledby="android-title">
+          <div class="platform-top"><span class="platform-symbol"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="2" width="14" height="24" rx="3"/><path d="M12 5h4M12 23h4"/></svg></span>
+            <div>
+              <h3 id="android-title">For Android</h3><small>App v1.0.0 · ARM64</small>
+            </div>
+          </div>
+          <p>An English (India) keyboard with a mic for dictation and voice edits.</p>
+          <ul class="requirements">
+            <li>Android 9 or later</li>
+            <li>Enable the keyboard &amp; allow microphone access</li>
+          </ul>
+          <p class="release-warning"><strong>Signed APK, not on the Play Store.</strong> Install/launch checked on one phone; live voice/editor testing remains incomplete. No predictive typing; features differ from Mac.</p><a class="button" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK <span aria-hidden="true">↓</span></a>
+          <div class="platform-links"><a href="android/">Android setup &amp; features</a><a href="https://github.com/imhimansu28/ChatterKey/releases/tag/android-v1.0.0">Android release notes</a><a href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk.sha256" aria-label="Android APK SHA-256 checksum">Checksum</a>
+          </div>
         </article>
       </div>
     </section>
-
-    <section id="features" class="feature-section section-block">
-      <div class="section-shell">
-        <div class="section-heading feature-heading reveal">
-          <div class="kicker">macOS features</div>
-          <h2>One voice. A smarter writing flow.</h2>
-          <p>From spoken words to polished text—with AI that understands what you mean and how you write.</p>
-        </div>
-
-        <div class="feature-journey">
-          <svg class="feature-wave" viewBox="0 0 1200 170" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="featureWaveGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stop-color="#b9bbcc" stop-opacity=".16"/>
-                <stop offset=".18" stop-color="#9da1bc" stop-opacity=".64"/>
-                <stop offset=".5" stop-color="#858aa9" stop-opacity=".72"/>
-                <stop offset=".82" stop-color="#9da1bc" stop-opacity=".64"/>
-                <stop offset="1" stop-color="#b9bbcc" stop-opacity=".16"/>
-              </linearGradient>
-            </defs>
-            <path class="wave-glow" d="M0 108 C70 108 105 62 150 62 S260 128 330 108 C390 96 410 47 450 47 S550 128 630 108 C680 101 704 67 750 67 S850 140 930 108 C980 91 1005 54 1050 54 S1140 101 1200 98"/>
-            <path class="wave-line" d="M0 108 C70 108 105 62 150 62 S260 128 330 108 C390 96 410 47 450 47 S550 128 630 108 C680 101 704 67 750 67 S850 140 930 108 C980 91 1005 54 1050 54 S1140 101 1200 98"/>
-            <g class="wave-bars wave-bars-one"><line x1="420" y1="47" x2="420" y2="72"/><line x1="430" y1="34" x2="430" y2="83"/><line x1="440" y1="21" x2="440" y2="92"/><line x1="450" y1="12" x2="450" y2="99"/><line x1="460" y1="25" x2="460" y2="88"/><line x1="470" y1="38" x2="470" y2="77"/><line x1="480" y1="48" x2="480" y2="68"/></g>
-            <g class="wave-bars wave-bars-two"><line x1="722" y1="69" x2="722" y2="86"/><line x1="732" y1="56" x2="732" y2="93"/><line x1="742" y1="43" x2="742" y2="100"/><line x1="752" y1="36" x2="752" y2="103"/><line x1="762" y1="48" x2="762" y2="96"/><line x1="772" y1="58" x2="772" y2="89"/><line x1="782" y1="67" x2="782" y2="82"/></g>
-            <g class="wave-bars wave-bars-three"><line x1="1020" y1="56" x2="1020" y2="80"/><line x1="1030" y1="42" x2="1030" y2="91"/><line x1="1040" y1="27" x2="1040" y2="101"/><line x1="1050" y1="20" x2="1050" y2="106"/><line x1="1060" y1="35" x2="1060" y2="96"/><line x1="1070" y1="47" x2="1070" y2="87"/><line x1="1080" y1="56" x2="1080" y2="79"/></g>
-            <g class="wave-node"><circle cx="150" cy="62" r="10"/><circle cx="150" cy="62" r="3"/></g><g class="wave-node"><circle cx="450" cy="47" r="10"/><circle cx="450" cy="47" r="3"/></g><g class="wave-node"><circle cx="750" cy="67" r="10"/><circle cx="750" cy="67" r="3"/></g><g class="wave-node"><circle cx="1050" cy="54" r="10"/><circle cx="1050" cy="54" r="3"/></g>
-          </svg>
-
-          <div class="feature-story-grid">
-            <article class="feature-story reveal">
-              <div class="feature-demo live-demo"><div class="demo-status"><img src="assets/app-icon.png" alt="" width="24" height="24"><span></span>Listening…</div><p>I’ll send the report<br>by end of day<span class="typing-cursor"></span></p></div>
-              <div class="feature-detail"><span class="feature-number">1</span><h3>Live transcription</h3><p>See a rough on-device preview when available, then receive polished final text.</p></div>
-            </article>
-            <article class="feature-story reveal delay-one">
-              <div class="feature-demo edit-demo"><p>Let’s <mark>move this</mark> to next week.</p><div class="demo-arrow">↓</div><p>Let’s <strong>push this</strong> to next week.</p></div>
-              <div class="feature-detail"><span class="feature-number">2</span><h3>Magic Voice Edit</h3><p>Select text and speak an instruction to rewrite it in place.</p></div>
-            </article>
-            <article class="feature-story reveal delay-two">
-              <div class="feature-demo vocabulary-demo"><div><span class="wrong-word">acme corp</span><b>→</b><i>✓</i></div><div><span class="right-word">Acme Corp</span><b>→</b><i>✓</i></div></div>
-              <div class="feature-detail"><span class="feature-number">3</span><h3>Personal vocabulary</h3><p>Teach names, products, and exact spellings once. Use them everywhere.</p></div>
-            </article>
-            <article class="feature-story reveal">
-              <div class="feature-demo snippet-demo"><span class="snippet-cue">⌁ “meeting intro”</span><div class="demo-arrow">↓</div><p>Hi everyone, thanks for joining. Here’s what we’ll cover today…</p></div>
-              <div class="feature-detail"><span class="feature-number">4</span><h3>Voice snippets</h3><p>Save spoken cues and expand reusable text anywhere you type.</p></div>
-            </article>
-          </div>
-        </div>
-
-        <div class="feature-extras reveal" aria-label="More ChatterKey features">
-          <span><b>↗</b> Cost & usage dashboard</span><span><b>◷</b> Local history</span><span><b>⌁</b> Custom AI prompts</span><span><b>Aa</b> Eight writing modes</span><span><b>↵</b> Spoken formatting</span><span><b>◌</b> One configurable model</span><span><b>⌘</b> Clipboard restoration</span>
-        </div>
-
-        <div class="release-highlights reveal" aria-label="Mac features retained in version 5.0.0">
-          <article>
-            <span class="highlight-icon">↗</span>
-            <div><small>REVIEWABLE EDITS</small><h3>Review before replacing</h3><p>Compare edits, acknowledge protected-value changes, then Apply, Copy or Discard. Unverifiable selections use manual recovery.</p></div>
-          </article>
-          <article>
-            <span class="highlight-icon">⌁</span>
-            <div><small>HANDS-FREE RECORDING</small><h3>Double-tap Fn to talk</h3><p>Hold to talk, or double-tap to keep recording. Press Fn again to stop; Escape cancels. Shortcut changes clear the recording lock.</p></div>
-          </article>
-          <article>
-            <span class="highlight-icon">◷</span>
-            <div><small>SHARED SWIFT CORE</small><h3>Native Mac. Separate core.</h3><p>Mac and Android use the same Swift processing, prompts and edit checks. Recording, permissions, text access and credentials stay native to each app. One model request per attempt.</p></div>
-          </article>
-        </div>
+    <section class="section faq wrap" id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Before you start.</h2>
+      <div class="faq-list">
+        <details id="privacy">
+          <summary>Does voice typing need internet? Where does my audio go?</summary>
+          <p>Yes. Audio and instructions go directly to your selected provider; voice edits also send the selected text. Provider data policies apply. Ordinary Android keyboard typing works offline. <a href="https://github.com/imhimansu28/ChatterKey/blob/main/PRIVACY.md">Read the privacy details.</a></p>
+        </details>
+        <details>
+          <summary>Can I dictate in Hindi or Hinglish?</summary>
+          <p>Use preserve-language instructions or Translate to English mode. Quality depends on the audio model and recording. Android’s typing layout is English (India); a dedicated Hindi layout and explicit Roman/Devanagari controls aren’t included yet.</p>
+        </details>
+        <details>
+          <summary>Will voice editing work in every app?</summary>
+          <p>Not every editor exposes a verifiable selection. Review the proposed edit; use Copy and manual paste if replacement isn’t available. Voice processing never sends your message automatically. See the <a href="macos/#voice-edit">Mac</a> or <a href="android/#voice-edit">Android</a> editing guide.</p>
+        </details>
       </div>
-    </section>
-
-    <section id="use-cases" class="section-shell section-block">
-      <div class="section-heading reveal">
-        <div class="kicker">Use it your way</div>
-        <h2>One shortcut. Every place you write.</h2>
-      </div>
-
-      <div class="use-case-layout">
-        <div class="use-case-tabs" role="tablist" aria-label="Use cases">
-          <button id="use-tab-founders" class="use-tab active" type="button" data-case="founders" role="tab" aria-selected="true" aria-controls="use-panel-founders" tabindex="0"><span>01</span> Founders & teams</button>
-          <button id="use-tab-developers" class="use-tab" type="button" data-case="developers" role="tab" aria-selected="false" aria-controls="use-panel-developers" tabindex="-1"><span>02</span> Developers</button>
-          <button id="use-tab-creators" class="use-tab" type="button" data-case="creators" role="tab" aria-selected="false" aria-controls="use-panel-creators" tabindex="-1"><span>03</span> Creators & students</button>
-          <button id="use-tab-support" class="use-tab" type="button" data-case="support" role="tab" aria-selected="false" aria-controls="use-panel-support" tabindex="-1"><span>04</span> Support & sales</button>
-        </div>
-        <div class="use-case-panel">
-          <div id="use-panel-founders" class="use-copy active" data-panel="founders" role="tabpanel" aria-labelledby="use-tab-founders" tabindex="0">
-            <span class="pill">Founders & teams</span>
-            <h3>Turn fast thoughts into clear communication.</h3>
-            <p>Dictate Slack updates, product notes, meeting summaries, and client emails without slowing down to translate or type.</p>
-            <ul><li>Professional email mode</li><li>Reusable meeting snippets</li><li>Concise team updates</li></ul>
-          </div>
-          <div id="use-panel-developers" class="use-copy" data-panel="developers" role="tabpanel" aria-labelledby="use-tab-developers" tabindex="0" hidden>
-            <span class="pill">Developers</span>
-            <h3>Explain code while your hands stay in flow.</h3>
-            <p>Write prompts, documentation, GitHub issues, code review notes, and technical messages with identifiers preserved.</p>
-            <ul><li>Technical output mode</li><li>Exact command and filename handling</li><li>Custom vocabulary for your stack</li></ul>
-          </div>
-          <div id="use-panel-creators" class="use-copy" data-panel="creators" role="tabpanel" aria-labelledby="use-tab-creators" tabindex="0" hidden>
-            <span class="pill">Creators & students</span>
-            <h3>Capture ideas before they disappear.</h3>
-            <p>Speak rough ideas and transform them into outlines, posts, notes, or polished drafts.</p>
-            <ul><li>Bullet and concise modes</li><li>Natural English translation</li><li>Optional local text history</li></ul>
-          </div>
-          <div id="use-panel-support" class="use-copy" data-panel="support" role="tabpanel" aria-labelledby="use-tab-support" tabindex="0" hidden>
-            <span class="pill">Support & sales</span>
-            <h3>Reply faster without sounding repetitive.</h3>
-            <p>Use voice snippets for standard answers, then personalize the rest naturally for each customer.</p>
-            <ul><li>Exact reusable responses</li><li>Professional tone cleanup</li><li>Works inside your existing CRM</li></ul>
-          </div>
-          <div class="app-cloud" aria-hidden="true">
-            <span>Slack</span><span>Mail</span><span>Notion</span><span>VS Code</span><span>GitHub</span><span>Chrome</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="privacy" class="privacy-section section-block">
-      <div class="section-shell privacy-grid">
-        <div class="privacy-copy reveal">
-          <div class="kicker">Built for ownership</div>
-          <h2>Your voice workflow.<br>Your choices.</h2>
-          <p>ChatterKey is open-source software for Mac and Android—not another account or project-operated transcription service. Your selected provider processes voice requests under its own policies.</p>
-          <div class="privacy-points">
-            <div><span>01</span><p><strong>Bring your own API key</strong>Keys stay in macOS Keychain or Android Keystore-encrypted private storage.</p></div>
-            <div><span>02</span><p><strong>No ChatterKey analytics</strong>No project-operated tracking or transcription backend.</p></div>
-            <div><span>03</span><p><strong>Platform-specific local data</strong>Mac history is optional. Android counters are opt-in aggregates; typed text is not saved for counting, and Practice/private-marked fields are excluded.</p></div>
-          </div>
-        </div>
-        <div class="privacy-visual reveal delay-one">
-          <div class="key-orbit">
-            <div class="orbit orbit-one"></div>
-            <div class="orbit orbit-two"></div>
-            <div class="key-core"><img src="assets/app-icon.png" alt="" width="72" height="72"></div>
-            <a class="provider provider-one" href="https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite" target="_blank" rel="noreferrer" aria-label="Explore Gemini audio models">
-              <span class="provider-mark">G</span><span>Google Direct</span>
-            </a>
-            <a class="provider provider-two" href="https://openrouter.ai/models" target="_blank" rel="noreferrer" aria-label="Explore OpenRouter models">
-              <span class="provider-mark">OR</span><span>OpenRouter</span>
-            </a>
-            <a class="provider provider-three" href="https://github.com/imhimansu28/ChatterKey#default-provider-configuration" target="_blank" rel="noreferrer" aria-label="Read about single-model configuration">
-              <span class="provider-mark">1</span><span>One model</span>
-            </a>
-          </div>
-          <p>Audio and instructions go together to Google Direct or OpenRouter—only the connection you select. Keys stay separate per connection, in each platform’s native credential storage.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="final-cta section-shell reveal">
-      <div class="cta-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="kicker">Ready when you are</div>
-      <h2>Stop translating your thoughts.<br>Start expressing them.</h2>
-      <p>Speak naturally. Review your words. Choose the native app for your device.</p>
-      <div class="hero-actions centered">
-        <a class="button button-light" href="https://github.com/imhimansu28/ChatterKey/releases/download/macos-v5.0.0/ChatterKey-macOS-v5.0.0.zip" aria-label="Download ChatterKey version 5.0.0 ZIP for macOS">Download for macOS</a>
-        <a class="button button-ghost" href="https://github.com/imhimansu28/ChatterKey/releases/download/android-v1.0.0/ChatterKey-Android-v1.0.0-arm64.apk">Download Android APK</a>
-      </div>
-      <small>Free and open source · macOS 14+ / Android 9+ · Provider usage billed separately</small>
     </section>
   </main>
-
-  <footer class="site-footer section-shell">
-    <a class="brand" href="#top"><img src="assets/app-icon.png" alt="" width="30" height="30"><span>ChatterKey</span></a>
-    <p>Your voice, polished into text.</p>
-    <div class="footer-links">
-      <a href="https://github.com/imhimansu28/ChatterKey">GitHub</a>
-      <a href="https://github.com/imhimansu28/ChatterKey/blob/main/CHANGELOG.md">Changelog</a>
-      <a href="https://github.com/imhimansu28/ChatterKey/releases">Releases</a>
-      <a href="https://github.com/imhimansu28/ChatterKey/blob/main/PRIVACY.md">Privacy</a>
-      <a href="https://github.com/imhimansu28/ChatterKey/blob/main/LICENSE">MIT License</a>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-top">
+        <div><a class="brand" href="./">ChatterKey</a>
+          <p>Your voice. Less typing.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="#downloads">Downloads</a><a href="https://github.com/imhimansu28/ChatterKey">Source code</a><a href="https://github.com/imhimansu28/ChatterKey/releases">Release notes</a>
+          <a href="https://github.com/imhimansu28/ChatterKey/blob/main/PRIVACY.md">Privacy</a><a href="https://github.com/imhimansu28/ChatterKey/blob/main/SECURITY.md">Security</a><a href="sitemap.xml">Sitemap</a>
+        </nav>
+      </div>
+      <div class="footer-bottom"><span>Open-source app · MIT license · Provider fees separate</span><span>Made for macOS &amp; Android. Not iOS or Windows.</span>
+      </div>
     </div>
   </footer>
-
-  <script src="script.js?v=8d6711f4ff8c"></script>
+  <script src="script.js?v=f87158da16f0" defer onerror="document.documentElement.classList.remove('js')"></script>
 </body>
 </html>

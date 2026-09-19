@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Website
+
+- Simplify the light product site into a direct four-section flow: one illustrative voice-to-text example, three everyday use cases, two centralized platform downloads and three essential questions. Remove duplicate demos, replay/tab controls, repeated slogans and separate technical panels. Keep setup details in the Mac/Android guides, visible provider/distribution caveats and no-JavaScript navigation.
+- Add canonical page metadata, a sitemap, platform-specific software descriptions, lightweight local social/icon assets and a custom 404 page. Preserve release links and platform/privacy limitations; add dependency-free website checks and an honest Search Console launch checklist.
+
 ## [macOS 5.0.0] - 2026-09-13
 
 ### Changed
