@@ -13,9 +13,336 @@ import Foundation
 @main
 @MainActor
 struct ModelHarness {
+    static func testAudioImports() async throws {
+        let noteSource = "## Main ideas\n- **Save water**\n- Repair taps\n\n3. First step\n4. Next step\n\nA [reference](https://example.com)."
+        let formatted = AudioImportText.format(noteSource)
+        precondition(String(formatted.characters) == "Main ideas\n• Save water\n• Repair taps\n\n3. First step\n4. Next step\n\nA reference.")
+        precondition(formatted.runs.contains { $0.inlinePresentationIntent?.contains(.stronglyEmphasized) == true })
+        precondition(formatted.runs.allSatisfy { $0.link == nil }, "Generated Markdown created interactive links")
+        let table = "| Name | Value |\n| --- | --- |\n| Price | ₹500 |"
+        precondition(String(AudioImportText.format(table).characters) == table, "Unsupported layout lost its structure")
+        var settings = ProviderSettings()
+        settings.spokenCommandsEnabled = true
+        settings.voiceSnippets = [VoiceSnippet(cue: "my email", content: "must-not-expand@example.com")]
+        settings.systemPrompt = "IMPORT MUST NOT USE THIS CUSTOM PROMPT"
+        let transcript = "my email comma new paragraph — नमस्ते"
+        for provider in AIProvider.availableConnections {
+            settings.selectProvider(provider)
+            for mode in AudioImportMode.allCases {
+                for format in AudioImportFormat.allCases {
+                    let json = try JSONSerialization.data(withJSONObject: [
+                        "transcript": transcript, "context": mode == .rawTranscript ? "" : "A personal voice memo.",
+                        "output": mode == .rawTranscript ? "" : "- my email comma new paragraph"
+                    ])
+                    let mock = MockTransport(body: reply(String(decoding: json, as: UTF8.self)))
+                    let client = ProviderClient(settings: settings, apiKey: "test-credential", transport: { try await mock.send($0) })
+                    let audio = Data("fixture audio".utf8)
+                    let result = try await client.processImportedAudio(audio, format: format, mode: mode)
+                    precondition(result.transcript == transcript, "Import changed raw words or expanded commands/snippets")
+                    let requests = await mock.requests
+                    precondition(requests.count == 1, "Import must not add a transcription/polishing pair")
+                    precondition(requests[0].timeoutInterval == 300)
+                    let body = try JSONSerialization.jsonObject(with: requests[0].httpBody!) as! [String: Any]
+                    precondition(body["max_tokens"] as? Int == 32_768)
+                    precondition((body["response_format"] as? [String: String])?["type"] == "json_object")
+                    if provider == .openRouter {
+                        precondition((body["provider"] as? [String: Any])?["require_parameters"] == nil,
+                                     "Direct import changed provider routing")
+                    }
+                    let messages = body["messages"] as! [[String: Any]]
+                    let prompt = (messages[0]["content"] as! [[String: Any]])[0]["text"] as! String
+                    precondition(prompt == mode.prompt)
+                    precondition(!prompt.contains(settings.systemPrompt) && !prompt.contains("must-not-expand@example.com"))
+                    precondition(messages.count == 2)
+                    let input = (messages[1]["content"] as! [[String: Any]])[0]["input_audio"] as! [String: String]
+                    precondition(input["format"] == format.rawValue && input["data"] == audio.base64EncodedString())
+                    let normal = try client.makeAudioRequest(audio: Data("fixture".utf8))
+                    precondition(normal.timeoutInterval == 40, "Import changed the dictation timeout")
+                    let normalBody = try JSONSerialization.jsonObject(with: normal.httpBody!) as! [String: Any]
+                    precondition(normalBody["response_format"] == nil && normalBody["max_tokens"] as? Int == 16_384)
+                }
+            }
+        }
+        // Long chunks request plain transcripts from the start. Quoted/multilingual speech
+        // must not be rejected for failing an unrelated JSON/derived-field contract.
+        let chunkText = "उन्होंने कहा, \"₹500\" — qualification: \"not guaranteed\".\n" +
+            String(repeating: "Example, explanation, names, numbers; my email comma new paragraph.\n", count: 200)
+        for provider in AIProvider.availableConnections {
+            settings.selectProvider(provider)
+            let mock = MockTransport(body: reply(chunkText))
+            let client = ProviderClient(settings: settings, apiKey: "test-credential", transport: { try await mock.send($0) })
+            let text = try await client.transcribeImportedChunk(Data("fixture audio".utf8))
+            precondition(text == chunkText, "Chunk transcription rewrote the source or applied dictation transforms")
+            let requests = await mock.requests
+            precondition(requests.count == 1 && requests[0].timeoutInterval == 300)
+            let body = try JSONSerialization.jsonObject(with: requests[0].httpBody!) as! [String: Any]
+            precondition(body["response_format"] == nil && body["model"] as? String == settings.provider.requestModelID(settings.model))
+            let messages = body["messages"] as! [[String: Any]]
+            let prompt = (messages[0]["content"] as! [[String: Any]])[0]["text"] as! String
+            precondition(prompt == AudioImportMode.chunkTranscriptionPrompt)
+            precondition(!prompt.contains(settings.systemPrompt))
+            let input = (messages[1]["content"] as! [[String: Any]])[0]["input_audio"] as! [String: String]
+            precondition(input["format"] == "wav")
+            if provider == .openRouter {
+                let routing = body["provider"] as! [String: Any]
+                precondition(routing["allow_fallbacks"] as? Bool == false && routing["require_parameters"] == nil)
+            }
+        }
+        let validImport = #"{"transcript":"source","context":"memo","output":"notes"}"#
+        let missingFinishReason = try JSONSerialization.data(withJSONObject: ["choices": [["message": ["content": validImport]]]])
+        let blocked = try JSONSerialization.data(withJSONObject: ["choices": [[
+            "message": ["content": validImport], "finish_reason": "content_filter", "native_finish_reason": "RECITATION"
+        ]]])
+        let unknownReason = try JSONSerialization.data(withJSONObject: ["choices": [[
+            "message": ["content": validImport], "finish_reason": "PRIVATE_RESPONSE_SENTINEL",
+            "native_finish_reason": "PRIVATE_RESPONSE_SENTINEL"
+        ]]])
+        let failures: [(Data, String, String)] = [
+            (reply("not JSON PRIVATE_RESPONSE_SENTINEL"), "malformed JSON", "malformed JSON"),
+            (reply("{}"), "missing the transcript field", "missing the context field"),
+            (reply(#"{"transcript":42,"context":42,"output":42}"#), "non-string required field", "non-string required field"),
+            (reply(#"{"transcript":"source","context":null,"output":"notes"}"#), "contains null", "contains null"),
+            (reply(#"{"transcript":"source","context":"","output":"notes"}"#), "empty context", "empty context"),
+            (reply(#"{"transcript":"source","context":"memo","output":""}"#), "empty output", "empty output"),
+            (missingFinishReason, "finish_reason=missing", "finish_reason=missing"),
+            (blocked, "finish_reason=content_filter; native_finish_reason=RECITATION", "finish_reason=content_filter; native_finish_reason=RECITATION"),
+            (unknownReason, "finish_reason=unrecognized; native_finish_reason=unrecognized", "finish_reason=unrecognized; native_finish_reason=unrecognized"),
+            (reply(""), "no text content", "no text content"),
+            (Data("not an envelope".utf8), "JSON envelope", "JSON envelope"),
+            (Data(#"{"choices":[]}"#.utf8), "no completion choices", "no completion choices")
+        ] + ["length", "content_filter", "tool_calls", "error"].map { reason in
+            let expected = reason == "length" ? "cut off" : "finish_reason=\(reason)"
+            return (reply(validImport, finishReason: reason), expected, expected)
+        }
+        for (body, audioFailure, finalFailure) in failures {
+            let mock = MockTransport(body: body)
+            let client = ProviderClient(settings: settings, apiKey: "test-credential", transport: { try await mock.send($0) })
+            do {
+                _ = try await client.processImportedAudio(Data("fixture".utf8), mode: .notes)
+                preconditionFailure("Incomplete imported result was accepted")
+            } catch {
+                precondition(error.localizedDescription.contains(audioFailure), "Audio failure did not identify its cause")
+                precondition(!error.localizedDescription.contains("PRIVATE_RESPONSE_SENTINEL"), "Diagnostics exposed response text")
+            }
+            var requests = await mock.requests
+            precondition(requests.count == 1, "Failure silently retried or repaired")
+            do {
+                _ = try await client.processImportedTranscript("Complete source", mode: .notes)
+                preconditionFailure("Invalid final output accepted")
+            } catch {
+                precondition(error.localizedDescription.contains(finalFailure), "Final output failure did not identify its cause")
+                precondition(!error.localizedDescription.contains("PRIVATE_RESPONSE_SENTINEL"), "Diagnostics exposed response text")
+            }
+            requests = await mock.requests
+            precondition(requests.count == 2, "Final output failure silently retried")
+            if audioFailure.contains("finish_reason=") || ["cut off", "no text content", "JSON envelope", "no completion choices"].contains(audioFailure) {
+                do {
+                    _ = try await client.transcribeImportedChunk(Data("fixture".utf8))
+                    preconditionFailure("Plain transcript path accepted an unconfirmed/incomplete chunk")
+                } catch {
+                    precondition(error.localizedDescription.contains(audioFailure))
+                    precondition(!error.localizedDescription.contains("PRIVATE_RESPONSE_SENTINEL"))
+                }
+                requests = await mock.requests
+                precondition(requests.count == 3, "Chunk failure caused an automatic retry")
+            }
+        }
+        for duration in [1799.0, 1800.0, 1800.001, 2700.0, 3048.0, 14400.0] {
+            let plan = try AudioImportPlan(duration: duration)
+            precondition(plan.isChunked == (duration > 1800))
+            precondition(abs(plan.durations.reduce(0, +) - duration) < 0.00001)
+            for mode in AudioImportMode.allCases {
+                precondition(plan.requestCount(mode: mode) == plan.durations.count + (duration > 1800 && mode != .rawTranscript ? 1 : 0))
+            }
+        }
+        for duration in [0.0, -1, Double.nan, Double.infinity, 14400.01] {
+            do { _ = try AudioImportPlan(duration: duration); preconditionFailure("Unbounded duration accepted") }
+            catch AudioImportError.resourceLimit { }
+        }
+        var checkpoint = AudioImportCheckpoint(plan: try AudioImportPlan(duration: 3048))
+        precondition(checkpoint.plan.durations == [900, 900, 900, 348])
+        for text in ["पहला 42", "second example", "qualification", "last detail"] {
+            do { _ = try checkpoint.mergedTranscript(); preconditionFailure("Incomplete transcript merged") }
+            catch AudioImportError.incompleteChunks { }
+            try checkpoint.append(text)
+        }
+        let merged = try checkpoint.mergedTranscript()
+        precondition(merged == "पहला 42\n\nsecond example\n\nqualification\n\nlast detail")
+        var bounded = AudioImportCheckpoint(plan: checkpoint.plan)
+        do { try bounded.append(String(repeating: "a", count: AudioImportPlan.maximumTranscriptBytes + 1)); preconditionFailure("Unbounded transcript accepted") }
+        catch AudioImportError.resourceLimit { }
+        precondition(bounded.transcripts.isEmpty)
+        let unused = MockTransport(body: reply("unused"))
+        let client = ProviderClient(settings: settings, apiKey: "test-credential", transport: { try await unused.send($0) })
+        do { _ = try await client.processImportedAudio(Data(), mode: .rawTranscript); preconditionFailure("Empty audio accepted") }
+        catch AudioImportError.tooLarge { }
+        let raw = try await client.processImportedTranscript(merged, mode: .rawTranscript)
+        precondition(raw.transcript == merged)
+        let requests = await unused.requests
+        precondition(requests.isEmpty, "Raw merged transcript made an extra request")
+        if let path = ProcessInfo.processInfo.environment["CHATTERKEY_IMPORT_FIXTURE"] {
+            let url = URL(fileURLWithPath: path)
+            let original = try Data(contentsOf: url)
+            let prepared = try await AudioFileImporter.prepare(url)
+            let unchanged = try Data(contentsOf: url)
+            precondition(unchanged == original, "Import changed the source recording")
+            precondition(prepared.duration > 0 && prepared.preparedBytes > 44)
+            if prepared.plan.isChunked {
+                precondition(prepared.audio.isEmpty && prepared.chunks.count == prepared.plan.durations.count)
+                var durations: [Double] = []
+                for (index, chunk) in prepared.chunks.enumerated() {
+                    let audio = try AVAudioFile(forReading: chunk)
+                    let duration = Double(audio.length) / audio.fileFormat.sampleRate
+                    precondition(abs(duration - prepared.plan.durations[index]) < 0.01)
+                    precondition(audio.fileFormat.sampleRate == 16_000 && audio.fileFormat.channelCount == 1)
+                    durations.append(duration)
+                }
+                print("Optional local chunk durations: \(durations); raw requests: \(prepared.plan.requestCount(mode: .rawTranscript)); notes/summary requests: \(prepared.plan.requestCount(mode: .notes)). No provider request.")
+            }
+            if prepared.format == .mp3 {
+                precondition(prepared.audio == original, "MP3 preparation changed compressed audio")
+                precondition(Double(prepared.audio.count) < prepared.duration * 32_000)
+                let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                defer { try? FileManager.default.removeItem(at: directory) }
+                let renamed = directory.appendingPathComponent("renamed.wav")
+                try original.write(to: renamed)
+                let detected = try await AudioFileImporter.prepare(renamed)
+                precondition(detected.format == .mp3 && detected.audio == original, "Import trusted the extension instead of the container")
+            }
+            print("Optional local import fixture: \(Int(prepared.duration)) seconds, \(prepared.preparedBytes) \(prepared.format.rawValue.uppercased()) bytes. No provider request.")
+        }
+    }
+
+    static func testChunkedImport(_ url: URL) async throws {
+        func wait(_ model: AudioImportModel) async throws {
+            for _ in 0..<3000 where model.isBusy { try await Task.sleep(for: .milliseconds(10)) }
+            precondition(!model.isBusy, "Import did not finish")
+        }
+        let chunkReplies = (1...4).map { reply("chunk \($0) detail") }
+        let final = reply(#"{"context":"A lecture","output":"Detailed notes\n- All details"}"#)
+        let merged = (1...4).map { "chunk \($0) detail" }.joined(separator: "\n\n")
+        for provider in AIProvider.availableConnections {
+            var settings = ProviderSettings()
+            settings.selectProvider(provider)
+            for mode in AudioImportMode.allCases {
+                let mock = MockTransport(body: final, responses: chunkReplies + [final], retainLargeBodies: false)
+                let model = AudioImportModel(transport: { try await mock.send($0) })
+                model.select(url)
+                try await wait(model)
+                precondition(model.error == nil && model.file?.chunks.count == 4)
+                precondition(!model.requiresDiscardConfirmation, "Unprocessed selection prompted about lost results")
+                let paths = model.file!.chunks
+                for (index, path) in paths.enumerated() {
+                    let chunk = try AVAudioFile(forReading: path)
+                    let sample = AVAudioPCMBuffer(pcmFormat: chunk.processingFormat, frameCapacity: 1)!
+                    try chunk.read(into: sample, frameCount: 1)
+                    precondition(abs(sample.floatChannelData![0][0] * 32768 - Float((index + 1) * 1000)) < 2, "Chunk seek lost its first sample")
+                    chunk.framePosition = chunk.length - 1
+                    try chunk.read(into: sample, frameCount: 1)
+                    precondition(abs(sample.floatChannelData![0][0] * 32768 - Float((index + 1) * 2000)) < 2, "Chunk range lost its last sample")
+                }
+                model.mode = mode
+                precondition(model.requestDisclosure.contains(mode == .rawTranscript ? "4 requests" : "5 requests"))
+                let before = await mock.requests
+                precondition(before.isEmpty, "File selection uploaded audio")
+                model.generate(settings: settings, apiKey: "test-credential")
+                try await wait(model)
+                precondition(model.result?.transcript == merged && model.resultMode == mode && model.error == nil)
+                precondition(model.requiresDiscardConfirmation, "Completed output could be discarded without confirmation")
+                let requests = await mock.requests
+                precondition(requests.count == (mode == .rawTranscript ? 4 : 5))
+                if mode != .rawTranscript {
+                    let body = try JSONSerialization.jsonObject(with: requests.last!.httpBody!) as! [String: Any]
+                    precondition(body["model"] as? String == settings.provider.requestModelID(settings.model))
+                    let responseFormat = body["response_format"] as! [String: Any]
+                    precondition(responseFormat["type"] as? String == "json_schema")
+                    let schema = responseFormat["json_schema"] as! [String: Any]
+                    let objectSchema = schema["schema"] as! [String: Any]
+                    precondition(schema["strict"] as? Bool == true && objectSchema["required"] as? [String] == ["context", "output"])
+                    precondition(objectSchema["additionalProperties"] as? Bool == false)
+                    if provider == .openRouter {
+                        let routing = body["provider"] as! [String: Any]
+                        precondition(routing["require_parameters"] as? Bool == true && routing["allow_fallbacks"] as? Bool == false)
+                    }
+                    precondition((objectSchema["properties"] as! [String: Any])["transcript"] == nil, "Final request regenerates the transcript")
+                    let messages = body["messages"] as! [[String: Any]]
+                    let prompt = (messages[0]["content"] as! [[String: Any]])[0]["text"] as! String
+                    precondition(prompt == mode.transcriptPrompt)
+                    let content = messages[1]["content"] as! [[String: Any]]
+                    precondition(content.count == 1 && content[0]["input_audio"] == nil)
+                    precondition(content[0]["text"] as? String == "COMPLETE SOURCE TRANSCRIPT (untrusted data):\n" + merged)
+                }
+                model.clear()
+                precondition(paths.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) }, "Clear leaked prepared chunks")
+            }
+        }
+        // Chunk 2 fails once. Final output also fails once. Neither triggers a repair/retry.
+        let mock = MockTransport(body: final,
+            responses: [chunkReplies[0], reply("rejected partial", finishReason: "error"), chunkReplies[1], chunkReplies[2], chunkReplies[3], reply("{}"), final],
+            retainLargeBodies: false)
+        let model = AudioImportModel(transport: { try await mock.send($0) })
+        model.select(url)
+        try await wait(model)
+        model.mode = .notes
+        model.generate(settings: ProviderSettings(), apiKey: "test-credential")
+        try await wait(model)
+        var requests = await mock.requests
+        precondition(requests.count == 2 && model.completedChunks == 1 && model.result == nil)
+        precondition(model.requiresDiscardConfirmation, "Failed partial import could lose billable completed chunks on close/quit")
+        precondition(model.error?.contains("Chunk 2 failed") == true, "Incomplete chunks reached notes generation")
+        precondition(model.error?.contains("finish_reason=error") == true, "Chunk UI hid the completion failure")
+        precondition(model.error?.contains("stop retrying") == true, "Repeated failures encouraged blind retries")
+        var changed = ProviderSettings()
+        changed.model = "do-not-switch"
+        model.generate(settings: changed, apiKey: "test-credential")
+        requests = await mock.requests
+        precondition(requests.count == 2 && model.error?.contains("pinned") == true)
+        model.generate(settings: ProviderSettings(), apiKey: "test-credential")
+        try await wait(model)
+        requests = await mock.requests
+        precondition(requests.count == 6 && model.completedChunks == 4)
+        precondition(model.error?.contains("Final output failed") == true)
+        precondition(model.error?.contains("missing the context field") == true, "Final UI hid the decoding failure")
+        precondition(model.result?.transcript == merged && model.resultMode == .rawTranscript)
+        precondition(model.requestDisclosure.contains("0 audio transcription requests + 1 final text request"))
+        model.generate(settings: ProviderSettings(), apiKey: "test-credential")
+        try await wait(model)
+        requests = await mock.requests
+        precondition(requests.count == 7 && model.resultMode == .notes && model.result?.transcript == merged)
+        model.clear()
+
+        // Cancel during chunk 2, then explicitly resume: only unfinished work is resent.
+        let cancellation = MockTransport(body: final,
+            responses: [chunkReplies[0], chunkReplies[1], chunkReplies[1], chunkReplies[2], chunkReplies[3]],
+            retainLargeBodies: false, pauseAt: 2)
+        let cancelled = AudioImportModel(transport: { try await cancellation.send($0) })
+        cancelled.select(url)
+        try await wait(cancelled)
+        let paths = cancelled.file!.chunks
+        cancelled.generate(settings: ProviderSettings(), apiKey: "test-credential")
+        for _ in 0..<3000 {
+            if await cancellation.requests.count == 2 { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        precondition(cancelled.completedChunks == 1 && cancelled.progress.contains("chunk 2 of 4"))
+        precondition(cancelled.requiresDiscardConfirmation, "Active import could be discarded without confirmation")
+        cancelled.cancel()
+        precondition(cancelled.requiresDiscardConfirmation, "Cancelling removed partial-checkpoint protection")
+        cancelled.generate(settings: ProviderSettings(), apiKey: "test-credential")
+        try await wait(cancelled)
+        requests = await cancellation.requests
+        precondition(requests.count == 5 && cancelled.result?.transcript == merged && cancelled.error == nil)
+        cancelled.clear()
+        precondition(!cancelled.requiresDiscardConfirmation, "Cleared import still blocks close/quit")
+        precondition(paths.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) })
+        print("Chunked import: both providers/all modes; ordered merge; failed chunk/final retry; pinned model; cancellation and cleanup passed.")
+    }
+
     static func main() async throws {
         try testAndroidBridge()
         try await testLocalRegressions()
+        try await testAudioImports()
         try await testEditPreview()
         try await testHandsFreeHotkey()
         let defaults = ProviderSettings()
@@ -674,7 +1001,7 @@ struct ModelHarness {
         board.setData(Data("original rich text".utf8), forType: .rtf)
         let copied = try await ClipboardTransaction.perform {
             try await TextSelectionReader.copiedText(from: board, copy: {
-                Task { @MainActor in
+                _ = Task { @MainActor in
                     try await Task.sleep(for: .milliseconds(150))
                     board.clearContents()
                     board.setString(selection, forType: .string)
@@ -696,7 +1023,7 @@ struct ModelHarness {
         let cancelled = Task { @MainActor in
             try await ClipboardTransaction.perform {
                 try await TextSelectionReader.copiedText(from: board, copy: {
-                    Task { @MainActor in
+                    _ = Task { @MainActor in
                         try await Task.sleep(for: .milliseconds(100))
                         board.clearContents()
                         board.setString("delayed copy", forType: .string)
@@ -816,6 +1143,113 @@ struct ModelHarness {
             let output = AVAudioPCMBuffer(pcmFormat: converted.processingFormat, frameCapacity: 512)!
             try converted.read(into: output)
             precondition(abs(output.floatChannelData![0][100]) > 0.1, "Conversion lost the audio signal")
+            let imported = try await AudioFileImporter.prepare(source)
+            precondition(abs(imported.duration - 2) < 0.01 && imported.format == .wav && imported.audio.prefix(4) == Data("RIFF".utf8))
+            let sourceBytes = try Data(contentsOf: source)
+            let boundedRead = try AudioFileImporter.readAudio(at: source)
+            precondition(boundedRead == sourceBytes, "Bounded read changed the source bytes")
+            do {
+                try AudioRecorder.convertToProviderWAV(from: source, to: directory.appendingPathComponent("limited.wav"), maximumFrames: 1)
+                preconditionFailure("Conversion exceeded its bounded duration")
+            } catch RecorderError.durationLimitExceeded { }
+            if sampleRate == 16_000 {
+                let readLimit = directory.appendingPathComponent("read-limit.wav")
+                try Data().write(to: readLimit)
+                let readHandle = try FileHandle(forWritingTo: readLimit)
+                defer { try? readHandle.close() }
+                for size in [0, ProviderClient.maximumImportedAudioBytes + 1, ProviderClient.maximumImportedAudioBytes] {
+                    try readHandle.truncate(atOffset: UInt64(size))
+                    do {
+                        let bytes = try AudioFileImporter.readAudio(at: readLimit)
+                        precondition(size == ProviderClient.maximumImportedAudioBytes && bytes.count == size)
+                    } catch AudioImportError.tooLarge {
+                        precondition(size != ProviderClient.maximumImportedAudioBytes, "Exact-limit audio was rejected")
+                    }
+                }
+                let cancelledRead = Task {
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    return try AudioFileImporter.readAudio(at: source)
+                }
+                do { _ = try await cancelledRead.value; preconditionFailure("Cancelled import read continued") }
+                catch is CancellationError { }
+                let overLimit = directory.appendingPathComponent("over-limit.wav")
+                var header = Data("RIFF".utf8)
+                let dataSize = UInt32(3048 * 32_000)
+                func append(_ value: UInt32) {
+                    var littleEndian = value.littleEndian
+                    withUnsafeBytes(of: &littleEndian) { header.append(contentsOf: $0) }
+                }
+                append(dataSize + 36)
+                header.append(Data("WAVEfmt ".utf8))
+                append(16); append(0x0001_0001); append(16_000); append(32_000); append(0x0010_0002)
+                header.append(Data("data".utf8)); append(dataSize)
+                try header.write(to: overLimit)
+                let handle = try FileHandle(forWritingTo: overLimit)
+                try handle.truncate(atOffset: UInt64(dataSize) + 44)
+                for (index, duration) in [900, 900, 900, 348].enumerated() {
+                    for (frame, value) in [(index * 900 * 16_000, (index + 1) * 1000),
+                                           ((index * 900 + duration) * 16_000 - 1, (index + 1) * 2000)] {
+                        try handle.seek(toOffset: UInt64(44 + frame * 2))
+                        var sample = Int16(value).littleEndian
+                        try withUnsafeBytes(of: &sample) { try handle.write(contentsOf: Data($0)) }
+                    }
+                }
+                try handle.close()
+                // Exercise the actual adapter + model pipeline using a sparse local WAV.
+                try await testChunkedImport(overLimit)
+                for duration in [1800.0, 1800.25] {
+                    let boundary = directory.appendingPathComponent("boundary.wav")
+                    var boundaryHeader = header
+                    var size = UInt32(duration * 32_000).littleEndian
+                    var riffSize = (size + 36).littleEndian
+                    withUnsafeBytes(of: &riffSize) { boundaryHeader.replaceSubrange(4..<8, with: $0) }
+                    withUnsafeBytes(of: &size) { boundaryHeader.replaceSubrange(40..<44, with: $0) }
+                    try boundaryHeader.write(to: boundary)
+                    let handle = try FileHandle(forWritingTo: boundary)
+                    try handle.truncate(atOffset: UInt64(size) + 44)
+                    try handle.close()
+                    let prepared = try await AudioFileImporter.prepare(boundary)
+                    precondition(prepared.plan.isChunked == (duration > 1800))
+                    precondition(duration == 1800 ? !prepared.audio.isEmpty : prepared.chunks.count == 3)
+                    if duration > 1800 {
+                        let last = try AVAudioFile(forReading: prepared.chunks.last!)
+                        precondition(last.length == 4000, "Final partial chunk was padded or omitted")
+                    }
+                }
+                let cancelledPreparation = Task { try await AudioFileImporter.prepare(overLimit) }
+                cancelledPreparation.cancel()
+                do { _ = try await cancelledPreparation.value; preconditionFailure("Cancelled preparation completed") }
+                catch is CancellationError { }
+                let mock = MockTransport(body: reply(#"{"transcript":"source text","context":"A memo","output":"- Notes"}"#))
+                let model = AudioImportModel(transport: { try await mock.send($0) })
+                model.select(source)
+                for _ in 0..<500 where model.isBusy { try await Task.sleep(for: .milliseconds(10)) }
+                precondition(model.file != nil && model.error == nil)
+                model.mode = .notes
+                model.generate(settings: ProviderSettings(), apiKey: "test-credential")
+                for _ in 0..<500 where model.isBusy { try await Task.sleep(for: .milliseconds(10)) }
+                precondition(model.result?.transcript == "source text" && model.resultMode == .notes)
+                let sent = await mock.requests
+                precondition(sent.count == 1)
+                let originalConnection = model.connectionDescription
+                var alternateSettings = ProviderSettings()
+                alternateSettings.model = "another-model"
+                model.generate(settings: alternateSettings, apiKey: "test-credential")
+                model.cancel()
+                try await Task.sleep(for: .milliseconds(50))
+                precondition(model.result?.transcript == "source text" && model.resultMode == .notes,
+                             "Cancelling a new generation lost the previous result")
+                precondition(model.connectionDescription == originalConnection,
+                             "An unfinished generation changed the previous result's provider label")
+                model.generate(settings: ProviderSettings(), apiKey: "test-credential")
+                model.clear()
+                try await Task.sleep(for: .milliseconds(50))
+                precondition(model.file == nil && model.result == nil && !model.isBusy, "Cancelled completion repopulated results")
+                model.select(source)
+                model.clear()
+                try await Task.sleep(for: .milliseconds(50))
+                precondition(model.file == nil && model.result == nil && !model.isBusy, "Cancelled selection reappeared")
+            }
         }
 
         let missingAudio = directory.appendingPathComponent("missing.wav")
@@ -844,19 +1278,29 @@ actor MockTransport {
     let status: Int
     let errorCode: URLError.Code?
     let cancel: Bool
+    let responses: [Data]
+    let retainLargeBodies: Bool
+    let pauseAt: Int?
 
-    init(body: Data, status: Int = 200, errorCode: URLError.Code? = nil, cancel: Bool = false) {
+    init(body: Data, status: Int = 200, errorCode: URLError.Code? = nil, cancel: Bool = false, responses: [Data] = [], retainLargeBodies: Bool = true, pauseAt: Int? = nil) {
         self.body = body
         self.status = status
         self.errorCode = errorCode
         self.cancel = cancel
+        self.responses = responses
+        self.retainLargeBodies = retainLargeBodies
+        self.pauseAt = pauseAt
     }
 
-    func send(_ request: URLRequest) throws -> (Data, URLResponse) {
-        requests.append(request)
+    func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        var recorded = request
+        if !retainLargeBodies && (recorded.httpBody?.count ?? 0) > 1_000_000 { recorded.httpBody = nil }
+        requests.append(recorded)
+        let index = requests.count - 1
+        if requests.count == pauseAt { try await Task.sleep(for: .seconds(60)) }
         if cancel { throw CancellationError() }
         if let errorCode { throw URLError(errorCode) }
-        return (body, HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+        return (index < responses.count ? responses[index] : body, HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
     }
 }
 SWIFT
@@ -873,6 +1317,8 @@ swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
 swiftc -swift-version 6 -warnings-as-errors -package-name ChatterKey \
   -I "$TMP" -L "$TMP" -lChatterKeyCore -lChatterKeyAndroidBridge -Xlinker -rpath -Xlinker "$TMP" \
   apps/macos/Sources/Models.swift \
-  apps/macos/Sources/Adapters/{TextInserter,HistoryStore,ClipboardTransaction,TextSelectionReader,GlobalHotkey,AudioRecorder,ProviderTransport}.swift \
+  apps/macos/Sources/Adapters/{TextInserter,HistoryStore,ClipboardTransaction,TextSelectionReader,GlobalHotkey,AudioRecorder,AudioFileImporter,ProviderTransport}.swift \
+  apps/macos/Sources/Services/AudioImportModel.swift \
+  apps/macos/Sources/Views/AudioImportText.swift \
   "$TMP/ModelHarness.swift" -o "$TMP/model-tests"
 "$TMP/model-tests"

@@ -29,7 +29,9 @@
 
 ## Separate releases. One shared core.
 
-| Platform | Current version | Requirements | Release notes |
+**macOS source/local build: 6.0.0 · build 16.** New audio import, long-recording chunk processing and a compact glass popup are included in the source. A public 6.0.0 ZIP has not been published; the download below remains 5.0.0. Android stays at 1.0.0.
+
+| Platform | Published version | Requirements | Release notes |
 | --- | --- | --- | --- |
 | macOS | **5.0.0 · build 15** | Apple Silicon, macOS 14+; ad-hoc signed, not Apple-notarized | [macOS 5.0.0](docs/releases/macos-v5.0.0.md) |
 | Android | **1.0.0 · version code 4** | ARM64 phone, Android 9+; signed release APK | [Android 1.0.0](docs/releases/android-v1.0.0.md) |
@@ -60,6 +62,24 @@ Only ChatterKey has changed; no integration or modifications to other applicatio
 - Normal dictation keeps its direct-insertion flow. Review data stays in memory; discarded proposals are not added to transcript history. The provider request and its local usage record have already occurred.
 
 See the [ordered product roadmap](ROADMAP.md) for Hindi/Hinglish controls, app-specific preferences, approved corrections, attempt details, and the approved Android keyboard development plan.
+
+### New in macOS 6.0.0 — audio import (source build)
+
+Version 6.0.0 adds **Import Audio** to the Mac menu. This is not included in the published macOS 5.0.0 download or Android keyboard.
+
+1. Choose an MP3, M4A, WAV, AIFF or CAF recording supported by macOS. Selection only prepares audio locally; it does not upload anything.
+2. Select **Raw transcript**, **Notes** or **Summary**, then explicitly click **Generate** to send the prepared recording to your configured audio model.
+3. Review the output and, for Notes/Summary, switch to the full source transcript. Use **Copy** or **Save**; nothing is pasted or submitted automatically.
+
+**Up to and including 30 minutes:** Raw transcript, Notes and Summary retain the direct **one-model-request** flow. Smaller verified MP3 files keep their original bytes (including embedded tags); other inputs use local WAV conversion. Smaller uploads do not reduce audio-token usage or remove output limits.
+
+**Over 30 minutes:** ChatterKey locally splits the recording into **15-minute WAV chunks**, transcribes them sequentially with the selected audio-capable model/provider, then joins the transcripts chronologically without summarising or deduplicating them. Chunk requests ask only for plain transcript text, not a JSON object with unused context/notes fields; confirmed completion and non-empty text are still required. Raw transcript needs only those chunk requests. Notes/Summary add **one text-only request containing the complete merged transcript**, using the same model/provider—not individual chunk summaries. That final request supplies an explicit JSON schema for context and output; the selected endpoint must support structured outputs. OpenRouter requests require that support and disable fallbacks. The direct ≤30-minute request format remains unchanged. A 50-minute-48-second recording needs four transcription requests, plus one for Notes/Summary. The sidebar discloses the request count before Generate and shows chunk progress.
+
+Notes request preservation of substantive details, names, numbers, examples, explanations and qualifications, without unsupported facts. The full source transcript remains available for review, Copy and Save, including when the final output request fails. AI can mishear or omit content; neither a normal provider completion nor these prompts guarantee zero information loss. Truncated, malformed or unconfirmed results are rejected without repair calls. Dictation custom prompts, snippets and spoken commands do not apply.
+
+Local limits are **256 MiB source / 4 hours / 16 chunks**, at most **440 MiB temporary chunk WAVs**, **4 MiB merged transcript** and **8 MiB per provider response**. Import conversion accepts up to 32 channels / 384 kHz. Audio is processed one chunk/request at a time, not all chunks in memory; each request has a 300-second timeout. Provider audio, context and output limits may be lower. Successful chunks remain available for **explicit Retry/Resume**; a failed/cancelled chunk may be sent again, but successful chunks are not repeated. A failed final Notes/Summary request retries only that text step. Incomplete chunk sets cannot generate final notes. Changing the connection/model requires clearing and reselecting the recording; there is no automatic model switch, fallback or retry.
+
+Cancel cannot recall data already sent or undo fees. Prepared chunks and in-memory checkpoints remain for explicit resume until Clear, a new selection, window close or app exit; they do not survive relaunch. Temporary chunks are deleted after active workers release them, and crash leftovers are removed on the next launch. Results stay outside History and usage counters and are never pasted/submitted automatically. Closing the import window or normally quitting the app asks for confirmation before discarding active work, completed chunks or results. Copy/Save before closing. Local preparation and mocked-provider tests are not live-provider quality validation.
 
 ## Android keyboard
 
@@ -204,7 +224,8 @@ Failures are shown to the user; ChatterKey does not automatically retry or fall 
 | Data | What happens |
 | --- | --- |
 | **API keys** | Stored in macOS Keychain |
-| **Audio** | Sent directly to the configured provider and deleted after successful processing or cancellation |
+| **Dictation audio** | Sent directly to the configured provider; local recording is cleaned up after successful processing or cancellation, or retained for explicit recovery after a failure |
+| **Imported audio (macOS 6)** | Selection stays local; Generate sends prepared audio to the selected provider. Temporary chunks/checkpoints remain until Clear, new selection, close or exit; the original file is never deleted |
 | **Magic Voice Edit selection** | Sent only when you explicitly use the feature |
 | **Dashboard records** | Usage metadata and suggestions stay local; older suggestions may include short repeated phrases. Clear Usage removes them |
 | **Transcript history** | Optional, local, retention-controlled, and disabled by default |
@@ -256,7 +277,7 @@ apps/android/bridge/             # Swift C ABI bridge to the same processing cor
 Scripts/                         # Root-level build, package and regression commands
 ```
 
-The Mac executable depends on `ChatterKeyCore`; the core does not depend on the app. It owns provider request construction/response parsing, prompts, writing modes, snippets, edit diffs, protected-value checks and estimated usage. The Mac app supplies completed WAV bytes, a settings value conforming to `ProcessingSettings`, and an explicit HTTP transport. Settings migrations, Keychain access, audio capture, live speech preview, Fn gestures, editor verification and window lifecycle stay native.
+The Mac executable depends on `ChatterKeyCore`; the core does not depend on the app. It owns provider request construction/response parsing, prompts, writing modes, snippets, edit diffs, protected-value checks and estimated usage. The Mac app supplies prepared audio bytes (WAV for dictation, WAV or MP3 for imports), a settings value conforming to `ProcessingSettings`, and an explicit HTTP transport. Settings migrations, Keychain access, audio capture, live speech preview, Fn gestures, editor verification and window lifecycle stay native.
 
 The core is a Swift module with package-scoped interfaces, not a server. The Android target exposes a narrow C ABI through JNI and cross-compiles these same sources; Android owns its native permissions, storage and editor lifecycle. No automatic sync is included. Mac settings keys, bundle identity and the one-model-request-per-attempt policy are unchanged.
 

@@ -34,7 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        AudioImportWindowController.shared.confirmDiscard(AppState.shared.audioImport) ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        AppState.shared.audioImport.clear()
         AppState.shared.cancel()
         AppState.shared.hotkey.stop()
     }

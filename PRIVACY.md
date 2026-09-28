@@ -27,6 +27,15 @@ The app pins Google Direct to `generativelanguage.googleapis.com` and OpenRouter
 
 Audio is captured in a temporary local CAF file and converted to a 16 kHz mono WAV file in bounded chunks. ChatterKey deletes it after a successful request or cancellation. After a processing failure, it may retain the file temporarily for an explicit retry; it is removed after retry success, cancellation, a new recording, app exit, or the next app launch.
 
+## Imported recordings (unreleased macOS feature)
+
+- Only a recording explicitly selected in the file picker is read. Selection prepares it locally and does not send a provider request. The original file is not modified.
+- For recordings up to and including 30 minutes, smaller verified MP3 files keep their original compressed bytes, including metadata/tags; other inputs are converted to bounded 16 kHz mono WAV. Direct-flow temporary WAVs are removed after preparation. Longer recordings are split locally into 15-minute WAVs in a private temporary subdirectory and read one at a time. Limits are 256 MiB source, 4 hours/16 chunks, at most 440 MiB temporary WAVs, 4 MiB merged transcript and 8 MiB per response. Conversion accepts up to 32 channels / 384 kHz.
+- Cancel retains prepared chunks and completed in-memory transcripts for explicit resume. Clear, new selection, window close and app exit release them; temporary chunks are removed once active workers have released their ownership. Crash leftovers are cleaned on next launch; transcripts/checkpoints are not persisted for recovery across launches.
+- Generate sends the prepared audio and import instructions to the configured Google/OpenRouter connection. Up to 30 minutes, each Generate is one audio-model request. Longer imports send each chunk once for transcription; Raw transcript is joined locally without an extra request. Notes/Summary send the entire merged transcript in one additional text-only request to the same model/provider, only after every chunk succeeds. Request counts are disclosed before Generate. No local file path, selected editor text, dictation vocabulary, snippets or custom dictation prompt is included. Original MP3 tags in direct uploads are not stripped and may contain personal metadata.
+- Results are held in memory, not automatically inserted or written to History/usage counters. Explicit Copy replaces the system clipboard and is not automatically erased/restored; Save writes a text file to the chosen location. Other apps or clipboard synchronization features may retain copied text.
+- Cancel/Clear/close cannot undo provider processing or fees for audio already sent. Each explicit Generate/Retry can incur charges; completed chunks are reused, but a cancelled/failed request may have already been billed and can be billed again on explicit retry. No automatic retries, repairs, provider/model switches or fallback calls are made. Provider retention policies apply independently.
+
 ## Permissions
 
 - **Microphone:** records during hold-to-talk or an explicitly started hands-free session until stopped or cancelled.

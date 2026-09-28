@@ -4,9 +4,29 @@ All notable changes to ChatterKey are documented here, version by version.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [macOS 6.0.0] - Unreleased
+
+Local/source build 16. The public macOS ZIP remains 5.0.0 until a separate 6.0.0 release is published. Android remains 1.0.0.
+
+### macOS menu-bar popup
+
+- Compact the main dictation popup to 320 points wide, removing the oversized version/header, duplicate ready heading and stacked mode/history cards. Keep recent text to two lines and move Import Audio, Settings and secondary actions into one compact footer. Use one native clear Liquid Glass surface on macOS 26+ with a transparent window background, a regular-glass Increase Contrast variant, and material/opaque fallbacks for older macOS and Reduce Transparency. Keep writing-mode choices in one menu and preserve native keyboard focus indicators.
+- Preserve existing dictation, retry, review, copy/history and settings actions. Add clearer processing status and keep standard button-style fallbacks for older macOS versions and Reduce Transparency. Show import-in-progress status and disable dictation controls while an import is busy. No provider/core changes or automatic recording requests.
+
+### macOS audio import
+
+- Add a separate Import Audio window with Raw transcript, context-aware Notes and Summary. Notes/Summary include the full source transcript for review, using one audio-model request per Generate for recordings up to and including 30 minutes.
+- Preserve smaller verified MP3 files without expanding them to PCM; prepare other recordings locally using the existing bounded WAV converter; retain the 256 MiB source cap and bound long imports to 4 hours/16 chunks, 440 MiB temporary WAVs, 4 MiB transcript and 8 MiB per response. Provider/model limits may be lower. Bound audio reads before allocation, including when source files change after selection. Choosing a file makes no provider request and never modifies the original recording.
+- Add a blue-waveform-branded file/mode sidebar, clearly labelled output examples, and a document reader with Notes/Transcript tabs and Copy/Save. Format headings, lists and emphasis locally while retaining original export text; unsupported layouts stay plain text. Support light/dark styling, small-window scrolling, progress/errors and explicit privacy/request disclosures.
+- Add explicit Generate/Retry, cancellation with stale-result protection, manual Copy/Save and close/quit confirmation, including failed imports with retained chunks. Keep previous successful output after a cancelled/failed regeneration. Imported results are not automatically inserted, added to History or counted as dictation usage.
+- Replace the 30-minute rejection with local 15-minute chunking, sequential same-model/provider transcription and chronological local transcript merging. Raw uses only chunk requests; Notes/Summary add one request with the complete transcript, never chunk summaries. Disclose request counts before Generate and show chunk progress. Retain completed chunks for explicit retry/cancellation recovery and expose the full transcript if the final output fails. No automatic retries, repairs or connection/model switches.
+- Request plain transcript text for long-audio chunks instead of requiring unused JSON fields. Keep confirmed completion, size and empty-result checks. Constrain the single final Notes/Summary request with an explicit context/output schema and disable unsupported-endpoint routing on OpenRouter; preserve the working direct ≤30-minute request format. This removes chunk JSON-format rejection, but does not establish the cause of an earlier live failure or guarantee provider acceptance.
+- Show prepared audio size/format and direct/chunked routing. Require a normal provider completion before accepting imported results, keep retry explicit and request whole-recording notes. Smaller uploads do not bypass output limits or verify transcript completeness.
+- Reuse shared-core request/response handling with import-specific structured output, size limits and a longer timeout. Leave live dictation prompts, request limits and text commands unchanged. Extend existing local conversion, provider and cancellation regression fixtures; live provider accuracy and large-file acceptance still need validation.
 
 ### Website
+
+- Introduce macOS 6.0.0 audio import in the existing homepage flow and Mac guide, including request counts, recovery, privacy and resource limits. Clearly distinguish the 6.0.0 source build from the published 5.0.0 download.
 
 - Simplify the light product site into a direct four-section flow: one illustrative voice-to-text example, three everyday use cases, two centralized platform downloads and three essential questions. Remove duplicate demos, replay/tab controls, repeated slogans and separate technical panels. Keep setup details in the Mac/Android guides, visible provider/distribution caveats and no-JavaScript navigation.
 - Add canonical page metadata, a sitemap, platform-specific software descriptions, lightweight local social/icon assets and a custom 404 page. Preserve release links and platform/privacy limitations; add dependency-free website checks and an honest Search Console launch checklist.

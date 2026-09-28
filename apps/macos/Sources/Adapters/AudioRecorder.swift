@@ -161,7 +161,7 @@ final class AudioRecorder {
         return audio
     }
 
-    nonisolated static func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL) throws {
+    nonisolated static func convertToProviderWAV(from sourceURL: URL, to destinationURL: URL, maximumFrames: AVAudioFramePosition? = nil, sourceRange: Range<TimeInterval>? = nil) throws {
         let inputFile = try AVAudioFile(forReading: sourceURL)
         guard inputFile.length > 0,
               let outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: true),
@@ -176,16 +176,27 @@ final class AudioRecorder {
             commonFormat: .pcmFormatInt16,
             interleaved: true
         )
+        let endFrame: AVAudioFramePosition
+        if let sourceRange {
+            let rate = inputFile.processingFormat.sampleRate
+            inputFile.framePosition = AVAudioFramePosition((sourceRange.lowerBound * rate).rounded())
+            endFrame = min(inputFile.length, AVAudioFramePosition((sourceRange.upperBound * rate).rounded()))
+            guard inputFile.framePosition >= 0, inputFile.framePosition < endFrame else { throw RecorderError.conversionFailed }
+        } else {
+            endFrame = inputFile.length
+        }
         let input = AudioConversionInputState(file: inputFile, buffer: inputBuffer)
         while true {
+            try Task.checkCancellation()
             var error: NSError?
             let status = converter.convert(to: outputBuffer, error: &error) { count, inputStatus in
-                guard input.file.framePosition < input.file.length else {
+                guard input.file.framePosition < endFrame else {
                     inputStatus.pointee = .endOfStream
                     return nil
                 }
                 do {
-                    try input.file.read(into: input.buffer, frameCount: min(count, input.buffer.frameCapacity))
+                    let remaining = AVAudioFrameCount(min(endFrame - input.file.framePosition, AVAudioFramePosition(input.buffer.frameCapacity)))
+                    try input.file.read(into: input.buffer, frameCount: min(count, remaining))
                     inputStatus.pointee = input.buffer.frameLength == 0 ? .endOfStream : .haveData
                     return input.buffer.frameLength == 0 ? nil : input.buffer
                 } catch {
@@ -196,6 +207,9 @@ final class AudioRecorder {
             }
             if let error = input.error ?? error { throw error }
             guard status != .error else { throw RecorderError.conversionFailed }
+            if let maximumFrames, outputFile.length + AVAudioFramePosition(outputBuffer.frameLength) > maximumFrames {
+                throw RecorderError.durationLimitExceeded
+            }
             if outputBuffer.frameLength > 0 { try outputFile.write(from: outputBuffer) }
             if status == .endOfStream { break }
             guard outputBuffer.frameLength > 0 else { throw RecorderError.conversionFailed }
@@ -207,11 +221,13 @@ final class AudioRecorder {
 nonisolated enum RecorderError: LocalizedError {
     case couldNotStart
     case conversionFailed
+    case durationLimitExceeded
 
     var errorDescription: String? {
         switch self {
         case .couldNotStart: "Microphone recording could not start."
         case .conversionFailed: "The recording could not be prepared for transcription."
+        case .durationLimitExceeded: "Audio conversion exceeded its bounded frame budget. No further audio was prepared."
         }
     }
 }

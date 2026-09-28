@@ -25,6 +25,7 @@ final class AppState: ObservableObject {
     @Published var hotkeyReady = false
     @Published var onboardingComplete: Bool
 
+    let audioImport = AudioImportModel()
     let recorder = AudioRecorder()
     let hotkey = GlobalHotkey()
     private var processingTask: Task<Void, Never>?
@@ -152,7 +153,7 @@ final class AppState: ObservableObject {
     }
 
     func beginDictation() {
-        guard !phase.isBusy else {
+        guard !audioImport.isBusy, !phase.isBusy else {
             hotkey.resetRecordingGesture()
             return
         }
@@ -215,7 +216,7 @@ final class AppState: ObservableObject {
     }
 
     func retryLastDictation() {
-        guard canRetry, let retryAudioURL else { return }
+        guard !audioImport.isBusy, canRetry, let retryAudioURL else { return }
         processAudio(at: retryAudioURL, spokenDraft: liveTranscript)
     }
 
